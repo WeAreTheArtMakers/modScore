@@ -14,7 +14,7 @@ async function walk(path) {
   for (const entry of await readdir(path, { withFileTypes: true })) {
     const p = `${path}/${entry.name}`;
     if (entry.isDirectory()) await walk(p);
-    else files.push("/" + p.slice(5));
+    else if (!["dist/source.tar.gz", "dist/offline-assets.json"].includes(p)) files.push("/" + p.slice(5));
   }
 }
 await walk("dist");
@@ -33,7 +33,7 @@ const digest = createHash("sha256")
   .digest("hex")
   .slice(0, 12);
 const sw = (await readFile("dist/sw.js", "utf8")).replace(
-  "modscore-shell-v1",
+  /modscore-shell-(?:v1|[a-f0-9]{12})/g,
   "modscore-shell-" + digest,
 );
 await writeFile("dist/sw.js", sw);

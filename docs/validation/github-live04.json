@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-22",
+  "url": "https://wearetheartmakers.github.io/modScore/",
+  "version": "0.4.0",
+  "browser": "157.0.8103.79",
+  "sampledPlayback": true,
+  "pdfPageSelection": true,
+  "actualRecognition": true,
+  "referenceNotes": 19,
+  "sourceArchiveAvailable": true,
+  "aboutPage": true,
+  "mobileOverflow": false,
+  "offlineReloadAndPlayback": true,
+  "errors": [],
+  "failures": [],
+  "physicalDevicesTested": false
+}

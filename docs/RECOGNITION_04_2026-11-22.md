@@ -50,3 +50,7 @@ The first five pages no longer become artificial independent parts. The fourth a
 Final local validation: **82 browser tests passed, 2 intensive mobile-profile recognition cases skipped; 4 native geometry tests passed**. The mobile profile is simulation. Full source and raster fixtures for the public tests are CC0 and contain no supplied score content. Production/HTTPS verification is recorded separately.
 
 Production verification under `/modScore/`, without cross-origin isolation headers, passed real recognition, PDF page selection, sampled playback, saved-draft reopening and offline reload/playback with zero browser errors or missing assets. See `validation/revision04-production.json`. The private combined eight-page project opens with one part, 142 measures and 4,072 sustained playback events; its sampled playback and source excerpt were checked with zero page errors. This is a functional check, not ground-truth accuracy validation.
+
+Distribution checks verify all 257 built asset hashes, the content-derived service-worker version and source-archive exclusions. Re-running the packager preserves the service-worker version and asset manifest; generated archives/manifests are excluded from their own digest inputs.
+
+Final HTTPS check passed on the published GitHub Pages address: 19 reference events recognized, PDF page selection, sampled playback, source download, responsive About page, offline reopening/playback and zero browser errors/missing assets. See `validation/github-live04.json`. No physical device claim is implied.

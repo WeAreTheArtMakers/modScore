@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "assets": "node scripts/prepare-assets.mjs",
-    "build": "tsc --noEmit && node scripts/prepare-assets.mjs && vite build && node scripts/package-source.mjs",
+    "build": "tsc --noEmit && node scripts/prepare-assets.mjs && vite build && node scripts/package-source.mjs && node scripts/verify-dist.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "playwright test --project=chrome --project=mobile-chrome",
     "test:recognition": "node scripts/validate-recognition.mjs",

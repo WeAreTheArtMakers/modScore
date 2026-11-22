@@ -1195,11 +1195,6 @@
     "sha256": "4c4ce0705ed1ac25a4ab6bea2b994c51a2d92d079c09d94fb86bd6762a4770be"
   },
   {
-    "path": "/offline-assets.json",
-    "bytes": 12756,
-    "sha256": "ddb0f5079ccc43237b19963d0b10e7f3794fb951db814d89786cbb6e7e5b7e9b"
-  },
-  {
     "path": "/recognition/lib/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.mjs",
     "bytes": 53057,
     "sha256": "3d1c85995364bb643302fc6fd877a0c3ba5ae72401815e0f24828a53d9191e28"
@@ -1278,11 +1273,6 @@
     "path": "/recognition/omr/partsong_omr_threads_fused.wasm",
     "bytes": 1100223,
     "sha256": "1bc8b37f1011aaee89844f07bb33f3eb7b56e38473ddfbd96b215626802c449f"
-  },
-  {
-    "path": "/source.tar.gz",
-    "bytes": 4856813,
-    "sha256": "eee711da809e00d8adbb7c6eba4c99ec9c8518735b8d02b5435978adecf235b7"
   },
   {
     "path": "/sw.js",
