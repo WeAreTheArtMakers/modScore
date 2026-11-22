@@ -1,0 +1,44 @@
+
+Running 34 tests using 1 worker
+
+(node:21265) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chrome] › tests/app.spec.ts:10:1 › score import, sample playback, piano synchronization, seek and MIDI export (3.1s)
+  ✓   2 [chrome] › tests/app.spec.ts:35:1 › note correction, saved library search, rename and reload (1.3s)
+  ✓   3 [chrome] › tests/app.spec.ts:59:1 › mobile layout, light theme, Turkish labels, keyboard and falling notes (468ms)
+  ✓   4 [chrome] › tests/app.spec.ts:80:1 › real printed image is recognized through the application without uploads (13.7s)
+  ✓   5 [chrome] › tests/app.spec.ts:113:1 › two-page PDF imports sequentially into editable scan pages (994ms)
+  ✓   6 [chrome] › tests/app.spec.ts:131:1 › two real images recognize sequentially and combine into one score (24.5s)
+  ✓   7 [chrome] › tests/music.spec.ts:6:1 › real grand staff parses pitches, polyphony, dotted durations and ties (312ms)
+  ✓   8 [chrome] › tests/music.spec.ts:52:1 › piecewise tempo conversion and inverse avoid drift (272ms)
+  ✓   9 [chrome] › tests/music.spec.ts:70:1 › tuplets, alto clef, rests and offset tempo use explicit MusicXML timing (284ms)
+  ✓  10 [chrome] › tests/music.spec.ts:88:1 › manual pitch, accidental, duration and onset corrections survive MusicXML (271ms)
+  ✓  11 [chrome] › tests/music.spec.ts:104:1 › MIDI import and export retain events, tempos and overlapping notes (266ms)
+  ✓  12 [chrome] › tests/music.spec.ts:126:1 › XML rejects entities, active content and malformed input (265ms)
+  ✓  13 [chrome] › tests/music.spec.ts:146:1 › IndexedDB commits complete project backups and keeps imports separate (273ms)
+  ✓  14 [chrome] › tests/music.spec.ts:180:1 › multiple-page XML combines without losing events or measure offsets (281ms)
+  ✓  15 [chrome] › tests/review-updates.spec.ts:2:1 › tempo correction persists exact numeric tempo without interpreting prose (305ms)
+  ✓  16 [chrome] › tests/review-updates.spec.ts:22:1 › update prompt is unique and applying saves before activation (319ms)
+  ✓  17 [chrome] › tests/review-updates.spec.ts:56:1 › first service-worker installation does not prompt an update (263ms)
+(node:21388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  18 [mobile-chrome] › tests/app.spec.ts:10:1 › score import, sample playback, piano synchronization, seek and MIDI export (2.8s)
+  ✓  19 [mobile-chrome] › tests/app.spec.ts:35:1 › note correction, saved library search, rename and reload (952ms)
+  ✓  20 [mobile-chrome] › tests/app.spec.ts:59:1 › mobile layout, light theme, Turkish labels, keyboard and falling notes (413ms)
+  ✓  21 [mobile-chrome] › tests/app.spec.ts:80:1 › real printed image is recognized through the application without uploads (13.6s)
+  ✓  22 [mobile-chrome] › tests/app.spec.ts:113:1 › two-page PDF imports sequentially into editable scan pages (782ms)
+  -  23 [mobile-chrome] › tests/app.spec.ts:131:1 › two real images recognize sequentially and combine into one score
+  ✓  24 [mobile-chrome] › tests/music.spec.ts:6:1 › real grand staff parses pitches, polyphony, dotted durations and ties (262ms)
+  ✓  25 [mobile-chrome] › tests/music.spec.ts:52:1 › piecewise tempo conversion and inverse avoid drift (270ms)
+  ✓  26 [mobile-chrome] › tests/music.spec.ts:70:1 › tuplets, alto clef, rests and offset tempo use explicit MusicXML timing (279ms)
+  ✓  27 [mobile-chrome] › tests/music.spec.ts:88:1 › manual pitch, accidental, duration and onset corrections survive MusicXML (250ms)
+  ✓  28 [mobile-chrome] › tests/music.spec.ts:104:1 › MIDI import and export retain events, tempos and overlapping notes (256ms)
+  ✓  29 [mobile-chrome] › tests/music.spec.ts:126:1 › XML rejects entities, active content and malformed input (256ms)
+  ✓  30 [mobile-chrome] › tests/music.spec.ts:146:1 › IndexedDB commits complete project backups and keeps imports separate (249ms)
+  ✓  31 [mobile-chrome] › tests/music.spec.ts:180:1 › multiple-page XML combines without losing events or measure offsets (254ms)
+  ✓  32 [mobile-chrome] › tests/review-updates.spec.ts:2:1 › tempo correction persists exact numeric tempo without interpreting prose (262ms)
+  ✓  33 [mobile-chrome] › tests/review-updates.spec.ts:22:1 › update prompt is unique and applying saves before activation (298ms)
+  ✓  34 [mobile-chrome] › tests/review-updates.spec.ts:56:1 › first service-worker installation does not prompt an update (256ms)
+
+  1 skipped
+  33 passed (1.2m)

@@ -1,0 +1,70 @@
+[
+  {
+    "type": "log",
+    "msg": "WASM threads: 1"
+  },
+  {
+    "type": "ready",
+    "gpu": false
+  },
+  {
+    "type": "log",
+    "msg": "Loaded segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f.onnx on wasm in 740 ms"
+  },
+  {
+    "type": "log",
+    "msg": "Systems in 9838 ms: segnet 8804 ms/18 calls; decode 43 ms, tiles 130 ms, segnet+argmax 8838 ms, segment 63 ms, layout 1 ms, pack 11 ms (total open 9826)"
+  },
+  {
+    "type": "result",
+    "id": 0,
+    "systems": [
+      [
+        [
+          229,
+          411,
+          1604,
+          492
+        ],
+        [
+          229,
+          572,
+          1604,
+          657
+        ]
+      ]
+    ],
+    "parts": [
+      2
+    ]
+  },
+  {
+    "type": "log",
+    "msg": "Loaded decoder_pytorch_model_509-2293bba14bfea47d9d28411339362af15fce4c31.onnx in homr-rs (relaxed SIMD) in 242 ms"
+  },
+  {
+    "type": "log",
+    "msg": "Loaded encoder_pytorch_model_509-2293bba14bfea47d9d28411339362af15fce4c31.onnx on wasm in 281 ms"
+  },
+  {
+    "type": "log",
+    "msg": "Found the staffs"
+  },
+  {
+    "type": "log",
+    "msg": "Running TrOmr inference on staff image 0"
+  },
+  {
+    "type": "log",
+    "msg": "Page in 2751 ms: encoder 1654 ms/1 calls, decoder 444 ms/39 calls; reader 653 ms"
+  },
+  {
+    "type": "result",
+    "id": 1,
+    "ms": 2751,
+    "memory": {
+      "pageWasmBytes": 39452672,
+      "decoderWasmBytes": 106364928
+    }
+  }
+]

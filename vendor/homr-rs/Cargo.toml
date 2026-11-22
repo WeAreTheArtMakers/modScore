@@ -1,0 +1,56 @@
+[package]
+name = "homr-rs"
+version = "0.1.0"
+edition = "2021"
+# the NEON dot-product intrinsics (vdotq_s32) are stable since 1.98
+rust-version = "1.98"
+description = "Experimental Rust port of homr, including its quantized transformer decoder"
+license = "AGPL-3.0-only"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "decode_contexts"
+path = "bench/decode_contexts.rs"
+
+[[bin]]
+name = "check_encoder_ops"
+path = "bench/check_encoder_ops.rs"
+
+[[bin]]
+name = "check_encoder"
+path = "bench/check_encoder.rs"
+
+[[bin]]
+name = "encoder_corpus"
+path = "bench/encoder_corpus.rs"
+
+[[bin]]
+name = "encoder_bench"
+path = "bench/encoder_bench.rs"
+
+[[bin]]
+name = "gpu_plan_check"
+path = "bench/gpu_plan_check.rs"
+
+[dependencies]
+libm = "0.2"
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
+[profile.release]
+opt-level = 3
+debug = false
+
+[features]
+# Benchmark-only synchronous retired-instruction phase counters (macOS / Node host).
+decoder-profile = []
+encoder-profile = []
+encoder-probes = []
+encoder-trace = []
+# Shared-memory host pool. Build std with atomics; workers do not allocate.
+encoder-threads = []
+# Diagnostic-only static/dynamic comparison, chunk tuning and sleeping ranks.
+encoder-chunk-bench = ["encoder-threads"]
+# Follow OpenCV 5.0 where it differs from 4.11 (minAreaRect conventions).
+opencv5 = []

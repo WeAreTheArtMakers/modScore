@@ -1,0 +1,22 @@
+[package]
+name = "partsong-omr"
+version = "0.1.0"
+edition = "2021"
+description = "Partsong's music reader: homr (via homr-rs) with Partsong's own layout rules, built to WebAssembly"
+license = "AGPL-3.0-only"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+homr-rs = { git = "https://github.com/pzfreo/homr-rs", rev = "f6309104e3582bae8df22669f0325e7fd1a7ab32" }
+
+[features]
+# homr-rs's multithreaded exact encoder (shared memory; nightly build-std).
+threads = ["homr-rs/encoder-threads"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

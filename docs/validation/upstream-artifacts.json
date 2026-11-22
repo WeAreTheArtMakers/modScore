@@ -1,0 +1,49 @@
+{
+  "partsong": "61e9aa3c19893f09a07fe8decbcafeaf735988d3",
+  "verifiedGitBlobs": [
+    {
+      "path": "omr-worker.js",
+      "gitBlob": "23a7c8d288709a5f96c7352eb4b514d433252ea3"
+    },
+    {
+      "path": "orient.js",
+      "gitBlob": "7c2bb484fac9f16c2a9ac9e6e67be1529c603951"
+    },
+    {
+      "path": "omr/encoder_gpu_kernels.mjs",
+      "gitBlob": "f0a539d8523e9fff83a3bcfdc1b746b3a3547665"
+    },
+    {
+      "path": "omr/encoder_pool.mjs",
+      "gitBlob": "26c760cbda998c94d45f49d0e966b371db1ee2ae"
+    },
+    {
+      "path": "omr/partsong_omr_fused.wasm",
+      "gitBlob": "2ad79b3ae0de7092856b19f675895f3e8b74bba9"
+    },
+    {
+      "path": "omr/encoder_worker.mjs",
+      "gitBlob": "bd29245c37473abb56e0dd551c6b531783b9adc5"
+    },
+    {
+      "path": "omr/partsong_omr.wasm",
+      "gitBlob": "9de6d6af9bcd9035d38741c4c533deb66e0983b0"
+    },
+    {
+      "path": "omr/encoder_gpu_math.mjs",
+      "gitBlob": "9b47a4cd047b3c8eeb4a6721ca1c5dc8b405162b"
+    },
+    {
+      "path": "omr/partsong_omr_threads_fused.wasm",
+      "gitBlob": "bddce4438bf699c15a034571fefbba962f794eea"
+    },
+    {
+      "path": "omr/encoder_gpu.mjs",
+      "gitBlob": "36f3f924b9e4c9061f6a7d74135797c66bcd2aae"
+    },
+    {
+      "path": "omr/partsong_omr_threads.wasm",
+      "gitBlob": "bd7e1a4d0d0c3aed6a997e8d07db5271e343f52e"
+    }
+  ]
+}

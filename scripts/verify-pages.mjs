@@ -1,0 +1,86 @@
+// Exercise the actual production build under a project subpath, without COOP/COEP.
+// Use a separate verification origin. Never serve an HTML fallback for missing assets.
+import { createServer } from "node:http";
+import { readFile, stat } from "node:fs/promises";
+import { resolve, extname } from "node:path";
+import { chromium } from "@playwright/test";
+const base = "/modScore/";
+const mime = { ".html":"text/html", ".js":"text/javascript", ".mjs":"text/javascript", ".json":"application/json", ".webmanifest":"application/manifest+json", ".css":"text/css", ".svg":"image/svg+xml", ".png":"image/png", ".wasm":"application/wasm", ".onnx":"application/octet-stream", ".musicxml":"application/xml" };
+const root = resolve("dist");
+const server = createServer(async (req, res) => {
+  try {
+    const pathname = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+    if (!pathname.startsWith(base)) { res.writeHead(404).end(); return; }
+    let file = resolve(root, pathname.slice(base.length) || "index.html");
+    if (!file.startsWith(root + "/") && file !== root) { res.writeHead(403).end(); return; }
+    if ((await stat(file)).isDirectory()) file += "/index.html";
+    const content = await readFile(file);
+    res.writeHead(200, { "Content-Type": mime[extname(file)] || "application/octet-stream" }).end(content);
+  } catch { res.writeHead(404).end(); }
+});
+await new Promise((done) => server.listen(0, "127.0.0.1", done));
+const origin = `http://127.0.0.1:${server.address().port}`;
+const browser = await chromium.launch(process.env.MODSCORE_BROWSER === "chromium" ? {} : { channel: "chrome" });
+const context = await browser.newContext();
+const page = await context.newPage();
+const errors = [], failures = [];
+page.on("pageerror", (e) => errors.push(e.message));
+page.on("response", (r) => { if (r.url().startsWith(origin) && r.status() >= 400) failures.push(r.status() + " " + r.url()); });
+const { expect } = await import("@playwright/test");
+try {
+  await page.goto(origin + base);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; if (!navigator.serviceWorker.controller) await new Promise((r) => navigator.serviceWorker.addEventListener("controllerchange", r, {once:true})); });
+  const scope = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
+  expect(scope).toBe(origin + base);
+  expect(await page.evaluate(() => crossOriginIsolated)).toBe(false);
+  await page.locator("#files").setInputFiles("public/fixtures/grand-staff.musicxml");
+  await expect(page.locator("#notation svg").first()).toBeVisible();
+  await page.getByRole("button", {name:"Play",exact:true}).click();
+  await expect(page.locator(".key.active").first()).toBeVisible();
+  await page.getByRole("button", {name:"Pause",exact:true}).click();
+  await page.setViewportSize({width:1440,height:1060});
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({path:"docs/preview.png",fullPage:false});
+  await page.goto(origin + base + "about/");
+  await expect(page.getByRole("heading", {name:/Your music/})).toBeVisible();
+  await page.setViewportSize({width:375,height:812});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({path:"docs/validation/about-mobile.png",fullPage:false});
+  await page.goto(origin + base);
+  await page.locator("#files").setInputFiles("tests/fixtures/study-two-pages.pdf");
+  await page.getByRole("textbox",{name:"Page range"}).fill("2");
+  await page.getByRole("button",{name:"Import selected pages",exact:true}).click();
+  await expect(page.locator(".scan-preview img")).toBeVisible();
+  await page.reload();
+  await page.getByRole("button",{name:"My scores",exact:true}).first().click();
+  await expect(page.locator(".score-open")).toHaveCount(2);
+  if (process.env.MODSCORE_VERIFY_OMR === "1") {
+    await page.goto(origin + base);
+    await page.locator("#files").setInputFiles("docs/validation/input.png");
+    await page.getByRole("button",{name:"Recognize locally",exact:true}).click();
+    await expect(page.locator("#notation svg").first()).toBeVisible({timeout:240000});
+    await page.getByRole("button",{name:"Play",exact:true}).click();
+    await expect(page.locator(".key.active").first()).toBeVisible();
+    await page.getByRole("button",{name:"Pause",exact:true}).click();
+  }
+  // Wait for the complete shell precache before taking the origin offline.
+  await page.waitForFunction(async () => {
+    const response = await fetch("./offline-assets.json");
+    const paths = await response.json();
+    const entries = await Promise.all(paths.map((p) => caches.match(new URL("./" + p.replace(/^\//,""), location.href).href)));
+    return entries.every(Boolean);
+  }, null, {timeout:120000});
+  await context.setOffline(true);
+  await page.goto(origin + base);
+  await page.getByRole("button",{name:"My scores",exact:true}).first().click();
+  // The first imported reference score remains available independently of PDF/OMR drafts.
+  const reference = page.locator(".score-open").filter({hasText:"Original"});
+  if (await reference.count()) await reference.first().click();
+  else await page.locator(".score-open").last().click();
+  await expect(page.locator("#notation svg").first()).toBeVisible();
+  await page.getByRole("button",{name:"Play",exact:true}).click();
+  await expect(page.locator(".key.active").first()).toBeVisible();
+  expect(errors, "Browser errors").toEqual([]);
+  expect(failures, "Missing production assets").toEqual([]);
+  console.log(JSON.stringify({productionSubpath:base,crossOriginIsolated:false,notation:true,sampledPlayback:true,pdfPageSelection:true,savedDraftReload:true,offlineReloadAndPlayback:true,actualRecognition:process.env.MODSCORE_VERIFY_OMR === "1",errors,failures},null,2));
+} finally { await browser.close(); await new Promise((r) => server.close(r)); }

@@ -1,0 +1,40 @@
+{
+  "name": "modscore",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "assets": "node scripts/prepare-assets.mjs",
+    "build": "tsc --noEmit && node scripts/prepare-assets.mjs && vite build && node scripts/package-source.mjs",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "playwright test --project=chrome --project=mobile-chrome",
+    "test:recognition": "node scripts/validate-recognition.mjs",
+    "test:webkit": "playwright test --project=webkit",
+    "assets:pdf": "node scripts/fetch-pdf.mjs",
+    "setup": "node scripts/setup.mjs",
+    "build:pages": "node scripts/build-pages.mjs"
+  },
+  "dependencies": {
+    "@tonejs/midi": "2.0.28"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "fflate": "0.8.3",
+    "typescript": "5.9.3",
+    "vite": "8.3.8"
+  },
+  "description": "Free, offline-first sheet music recognition, playback and virtual piano",
+  "homepage": "https://wearetheartmakers.github.io/modScore/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WeAreTheArtMakers/modScore.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WeAreTheArtMakers/modScore/issues"
+  },
+  "engines": {
+    "node": ">=22.23.0"
+  }
+}

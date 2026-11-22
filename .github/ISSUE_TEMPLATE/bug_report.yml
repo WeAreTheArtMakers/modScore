@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible problem in recognition, import or playback.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include steps, expected result and actual result. Do not attach private or copyrighted scores without permission.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, operating system and device
+      placeholder: Chrome 157, macOS, Apple M1
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant error or screenshot
+      description: Remove personal information before submitting.

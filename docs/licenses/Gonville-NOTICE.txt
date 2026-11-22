@@ -1,0 +1,8 @@
+Gonville music glyph design: Simon Tatham.
+Author's license statement: https://www.chiark.greenend.org.uk/~sgtatham/gonville/
+Inspected 2026-11-20.
+
+The author permits unrestricted use of the finished font files, including
+embedding outlines in SVG/PDF and music typesetting programs. The font-generator
+source code is separately MIT-licensed. modScore credits Simon Tatham for the
+Gonville glyph design used by the VexFlow engraving dependency.

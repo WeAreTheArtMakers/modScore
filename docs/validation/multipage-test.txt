@@ -1,0 +1,12 @@
+
+> modscore@0.1.0 test
+> playwright test --project=chrome --grep two real images
+
+
+Running 1 test using 1 worker
+
+(node:72196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chrome] › tests/app.spec.ts:131:1 › two real images recognize sequentially and combine into one score (32.8s)
+
+  1 passed (37.0s)

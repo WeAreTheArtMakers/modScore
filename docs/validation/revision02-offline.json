@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "date": "2026-11-22",
+  "browser": "157.0.8103.79",
+  "steps": [
+    {
+      "step": "Production service worker activated",
+      "ms": 894
+    },
+    {
+      "step": "Online actual image recognition completed and saved",
+      "ms": 14044
+    },
+    {
+      "step": "Offline asset preparation completed",
+      "ms": 14319
+    },
+    {
+      "step": "App shell reopened with network disconnected",
+      "ms": 14378
+    },
+    {
+      "step": "Saved score and sampled audio played offline",
+      "ms": 15057
+    },
+    {
+      "step": "Offline WAV export produced 441044 bytes of non-silent audio",
+      "ms": 15174
+    },
+    {
+      "step": "New printed image recognized offline with real cached models",
+      "ms": 27338
+    }
+  ],
+  "errors": [],
+  "caches": [
+    "partscanner-models-v1",
+    "modscore-shell-3c4b15258e94",
+    "modscore-offline-v1",
+    "modscore-instruments-v1"
+  ],
+  "offlineWavBytes": 441044,
+  "physicalIPhoneTest": false
+}

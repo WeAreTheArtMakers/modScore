@@ -1,0 +1,39 @@
+
+> modscore@0.1.0 test
+> playwright test --project=chrome --project=mobile-chrome
+
+
+Running 26 tests using 1 worker
+
+(node:70474) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chrome] › tests/app.spec.ts:10:1 › score import, sample playback, piano synchronization, seek and MIDI export (4.5s)
+  ✓   2 [chrome] › tests/app.spec.ts:35:1 › note correction, saved library search, rename and reload (1.9s)
+  ✓   3 [chrome] › tests/app.spec.ts:59:1 › mobile layout, light theme, Turkish labels, keyboard and falling notes (662ms)
+  ✓   4 [chrome] › tests/app.spec.ts:80:1 › real printed image is recognized through the application without uploads (16.5s)
+  ✓   5 [chrome] › tests/app.spec.ts:113:1 › two-page PDF imports sequentially into editable scan pages (1.6s)
+  ✓   6 [chrome] › tests/music.spec.ts:6:1 › real grand staff parses pitches, polyphony, dotted durations and ties (556ms)
+  ✓   7 [chrome] › tests/music.spec.ts:52:1 › piecewise tempo conversion and inverse avoid drift (405ms)
+  ✓   8 [chrome] › tests/music.spec.ts:70:1 › tuplets, alto clef, rests and offset tempo use explicit MusicXML timing (466ms)
+  ✓   9 [chrome] › tests/music.spec.ts:88:1 › manual pitch, accidental, duration and onset corrections survive MusicXML (598ms)
+  ✓  10 [chrome] › tests/music.spec.ts:104:1 › MIDI import and export retain events, tempos and overlapping notes (479ms)
+  ✓  11 [chrome] › tests/music.spec.ts:126:1 › XML rejects entities, active content and malformed input (629ms)
+  ✓  12 [chrome] › tests/music.spec.ts:146:1 › IndexedDB commits complete project backups and keeps imports separate (482ms)
+  ✓  13 [chrome] › tests/music.spec.ts:180:1 › multiple-page XML combines without losing events or measure offsets (548ms)
+(node:70590) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  14 [mobile-chrome] › tests/app.spec.ts:10:1 › score import, sample playback, piano synchronization, seek and MIDI export (3.0s)
+  ✓  15 [mobile-chrome] › tests/app.spec.ts:35:1 › note correction, saved library search, rename and reload (1.0s)
+  ✓  16 [mobile-chrome] › tests/app.spec.ts:59:1 › mobile layout, light theme, Turkish labels, keyboard and falling notes (476ms)
+  ✓  17 [mobile-chrome] › tests/app.spec.ts:80:1 › real printed image is recognized through the application without uploads (14.8s)
+  ✓  18 [mobile-chrome] › tests/app.spec.ts:113:1 › two-page PDF imports sequentially into editable scan pages (822ms)
+  ✓  19 [mobile-chrome] › tests/music.spec.ts:6:1 › real grand staff parses pitches, polyphony, dotted durations and ties (310ms)
+  ✓  20 [mobile-chrome] › tests/music.spec.ts:52:1 › piecewise tempo conversion and inverse avoid drift (300ms)
+  ✓  21 [mobile-chrome] › tests/music.spec.ts:70:1 › tuplets, alto clef, rests and offset tempo use explicit MusicXML timing (460ms)
+  ✓  22 [mobile-chrome] › tests/music.spec.ts:88:1 › manual pitch, accidental, duration and onset corrections survive MusicXML (327ms)
+  ✓  23 [mobile-chrome] › tests/music.spec.ts:104:1 › MIDI import and export retain events, tempos and overlapping notes (293ms)
+  ✓  24 [mobile-chrome] › tests/music.spec.ts:126:1 › XML rejects entities, active content and malformed input (282ms)
+  ✓  25 [mobile-chrome] › tests/music.spec.ts:146:1 › IndexedDB commits complete project backups and keeps imports separate (377ms)
+  ✓  26 [mobile-chrome] › tests/music.spec.ts:180:1 › multiple-page XML combines without losing events or measure offsets (326ms)
+
+  26 passed (58.0s)

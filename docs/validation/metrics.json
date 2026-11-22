@@ -1,0 +1,39 @@
+{
+  "expected": 19,
+  "recognized": 19,
+  "matched": 19,
+  "precision": 1,
+  "recall": 1,
+  "missing": [],
+  "extraOrIncorrect": [],
+  "expectedTempos": [
+    {
+      "beat": 0,
+      "bpm": 96
+    }
+  ],
+  "recognizedTempos": [
+    {
+      "beat": 0,
+      "bpm": 120
+    }
+  ],
+  "warnings": [
+    "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+  ],
+  "recognitionMs": 2751,
+  "wallMs": 13537.255000114441,
+  "memory": {
+    "pageWasmBytes": 39452672,
+    "decoderWasmBytes": 106364928
+  },
+  "host": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M1 Pro",
+    "memoryBytes": 17179869184
+  },
+  "browser": "157.0.8103.79",
+  "path": "CPU WASM, 1 thread; ios resource-disposal flag enabled; desktop Chrome, not iPhone",
+  "date": "2026-11-20"
+}

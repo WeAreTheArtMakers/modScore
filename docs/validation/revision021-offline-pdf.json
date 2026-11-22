@@ -1,0 +1,11 @@
+{
+  "version": "0.2.1",
+  "date": "2026-11-22",
+  "passed": true,
+  "browser": "157.0.8103.79",
+  "networkOffline": true,
+  "missingMapAPIs": true,
+  "pdfPages": 2,
+  "nonWhitePixels": 2815,
+  "errors": []
+}

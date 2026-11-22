@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>modScore real OMR validation</title>
+  </head>
+  <body>
+    <div id="score" style="width: 1100px; background: white"></div>
+    <pre id="log"></pre>
+    <script src="./lib/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js"></script>
+    <script>
+      window.logs = [];
+      window.result = null;
+      async function run() {
+        const xml = await (
+          await fetch("./fixtures/grand-staff.musicxml")
+        ).text();
+        const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(
+          document.getElementById("score"),
+          { autoResize: false, backend: "svg", drawingParameters: "default" },
+        );
+        await osmd.load(xml);
+        osmd.render();
+        const svg = document.querySelector("#score svg");
+        const data = new XMLSerializer().serializeToString(svg);
+        const image = new Image();
+        const url = URL.createObjectURL(
+          new Blob([data], { type: "image/svg+xml" }),
+        );
+        image.src = url;
+        await image.decode();
+        const c = document.createElement("canvas");
+        c.width = 2200;
+        c.height = Math.round((image.height * 2200) / image.width);
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(image, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        window.printedPage = c.toDataURL("image/png");
+        const blob = await new Promise((r) => c.toBlob(r));
+        let bytes = await blob.arrayBuffer();
+        const w = new Worker("./recognition/omr-worker.js", { type: "module" });
+        const started = performance.now();
+        w.onmessage = async ({ data }) => {
+          if (data.type !== "progress") {
+            const { classes, xml, ...metadata } = data;
+            logs.push(metadata);
+            document.getElementById("log").textContent = JSON.stringify(
+              logs,
+              null,
+              2,
+            );
+            console.log(JSON.stringify(data).slice(0, 500));
+          }
+          if (data.type === "ready")
+            w.postMessage({ type: "layout", id: 0, image: bytes }, [bytes]);
+          if (data.type === "result" && data.id === 0) {
+            bytes = await blob.arrayBuffer();
+            w.postMessage(
+              { type: "recognise", id: 1, image: bytes, classes: data.classes },
+              [bytes, data.classes.buffer],
+            );
+          }
+          if (
+            (data.type === "result" && data.id === 1) ||
+            data.type === "error"
+          ) {
+            window.result = {
+              ...data,
+              wallMs: performance.now() - started,
+              logs,
+            };
+            w.terminate();
+          }
+        };
+        w.onerror = (e) =>
+          (window.result = { type: "error", msg: e.message, logs });
+        w.postMessage({ type: "init", noGpu: true, ios: true, threads: 1 });
+      }
+      run().catch((e) => (window.result = { type: "error", msg: e.stack }));
+    </script>
+  </body>
+</html>

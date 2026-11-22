@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-20",
+  "partsong": "61e9aa3c19893f09a07fe8decbcafeaf735988d3",
+  "homrRs": "f6309104e3582bae8df22669f0325e7fd1a7ab32",
+  "homrFaq": "94324aee60ea955c7fe37c287e29199b5061544a",
+  "fluidR3": "044fab8e1456bfafc5776e86dfd6bb8697149aef",
+  "files": [
+    {
+      "path": "vendor/partsong/omr/encoder_gpu.mjs",
+      "bytes": 30819,
+      "sha256": "04f21cc3c3bce595f9a472e7adf82b1ddcc8a48641519f58d8187258a8fa2fc4"
+    },
+    {
+      "path": "vendor/partsong/omr/encoder_gpu_kernels.mjs",
+      "bytes": 13984,
+      "sha256": "b54a1eb642cee51d101520c70fd4d33f65ae05e5a3c6aac734001326a5ee68b0"
+    },
+    {
+      "path": "vendor/partsong/omr/encoder_gpu_math.mjs",
+      "bytes": 11140,
+      "sha256": "7cf144b29f569d31b7ca1edd71b3367b55d2b027907f4b9221120fc6e35cdbe4"
+    },
+    {
+      "path": "vendor/partsong/omr/encoder_pool.mjs",
+      "bytes": 4969,
+      "sha256": "6a67e43387d3c12cbd698e50bd8b0a43c9e2809f317dd099de395745c36b5c21"
+    },
+    {
+      "path": "vendor/partsong/omr/encoder_worker.mjs",
+      "bytes": 1485,
+      "sha256": "4cf586e08273773029a8a035e27ce6fa20c13b2602ceb7184305b35502045304"
+    },
+    {
+      "path": "vendor/partsong/omr/partsong_omr.wasm",
+      "bytes": 1092712,
+      "sha256": "e9d2750a87d9f4045e858f95cb75714c99689dbaa6c093efe092494efc1e9a89"
+    },
+    {
+      "path": "vendor/partsong/omr/partsong_omr_fused.wasm",
+      "bytes": 1096098,
+      "sha256": "685557795f8ccac29cc4142c08fb9c84b55807a4ce0c0420e94e280b7544c4a2"
+    },
+    {
+      "path": "vendor/partsong/omr/partsong_omr_threads.wasm",
+      "bytes": 1099529,
+      "sha256": "a4e0918f05554d804fdbfec6708b8c47c9d30b87ee245a1f02a225f195331dfe"
+    },
+    {
+      "path": "vendor/partsong/omr/partsong_omr_threads_fused.wasm",
+      "bytes": 1100223,
+      "sha256": "1bc8b37f1011aaee89844f07bb33f3eb7b56e38473ddfbd96b215626802c449f"
+    },
+    {
+      "path": "vendor/partsong/models/decoder_pytorch_model_509-2293bba14bfea47d9d28411339362af15fce4c31.onnx",
+      "bytes": 47356003,
+      "sha256": "99a6ac39770616bc1a20d6c409bb85fbbe21ba47f972984f9ef834fb5741b96f"
+    },
+    {
+      "path": "vendor/partsong/models/encoder_pytorch_model_509-2293bba14bfea47d9d28411339362af15fce4c31.onnx",
+      "bytes": 52861122,
+      "sha256": "ee5767286c60dc3d567fe72b6560e7285261ede1535b4215153c199ab3057559"
+    },
+    {
+      "path": "vendor/partsong/models/segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f.onnx",
+      "bytes": 57311361,
+      "sha256": "6ed36640db4ef5d223098b6d5efe4eda97c66b24a2c72faab8a018c749003a8d"
+    },
+    {
+      "path": "vendor/partsong/lib/mp4-muxer@5.2.2/build/mp4-muxer.mjs",
+      "bytes": 69011,
+      "sha256": "d2c4c782f180c86ed30b1f5d9487a34a0d370bf9b4535285734ea187d38f9bb5"
+    },
+    {
+      "path": "vendor/partsong/lib/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.mjs",
+      "bytes": 53057,
+      "sha256": "3d1c85995364bb643302fc6fd877a0c3ba5ae72401815e0f24828a53d9191e28"
+    },
+    {
+      "path": "vendor/partsong/lib/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.wasm",
+      "bytes": 26781914,
+      "sha256": "39f9f0894d478800487ed9f7dbe92618498db320cf55c8e3d89adff8dce658da"
+    },
+    {
+      "path": "vendor/partsong/lib/onnxruntime-web@1.30.0/dist/ort.webgpu.min.mjs",
+      "bytes": 66349,
+      "sha256": "3dffff71811bc13a3a3d9591c57ca5ee5735b8f5f3eaf789510b02bb040ae3a0"
+    },
+    {
+      "path": "vendor/partsong/lib/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js",
+      "bytes": 1387290,
+      "sha256": "86e439e5ec1c0cbf8b7051e0cf32291d377fb97cf6b8976b9ef87c714e0ca032"
+    },
+    {
+      "path": "vendor/partsong/lib/pdfjs-dist@6.4.299/build/pdf.min.mjs",
+      "bytes": 458904,
+      "sha256": "57456c8e0c81e46be31174b499ef77f2b9f5ee46d04412ba627320a36755d4c2"
+    },
+    {
+      "path": "vendor/partsong/lib/pdfjs-dist@6.4.299/build/pdf.worker.min.mjs",
+      "bytes": 1264342,
+      "sha256": "9536359f1b8367850d485731ca1d5e45c159a7b7a0912325e539937aa21ceb18"
+    },
+    {
+      "path": "vendor/partsong/omr-worker.js",
+      "bytes": 34978,
+      "sha256": "c0a3f45d600b2ffb5e8de5145b8c5f7dbb78469d463d528b25805f5c242c8b47"
+    },
+    {
+      "path": "vendor/partsong/orient.js",
+      "bytes": 4330,
+      "sha256": "508129f8fea5bf52b4dad9b8187e3067f0caf1629605a8aac8d85b5a1476a6dd"
+    },
+    {
+      "path": "public/instruments/acoustic_grand_piano.json",
+      "bytes": 2631621,
+      "sha256": "3ecf74e2f674056f1a1b82830b228b5d788e9036afc7eb290adc1fffeea7dca1"
+    }
+  ]
+}
