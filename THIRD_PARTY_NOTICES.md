@@ -30,7 +30,7 @@ These are upstream statements, not an independent legal clearance of every under
 | OpenSheetMusicDisplay (PhonicScore and contributors) | 2.2.0 | BSD-3-Clause | MusicXML engraving and cursor |
 | PDF.js (Mozilla and contributors) | 6.4.299 | Apache-2.0 | Local sequential PDF rasterization |
 | @tonejs/midi (Yotam Mann and contributors) | 2.0.28 | MIT | Standard MIDI import/export |
-| midi-file | See package-lock.json | MIT | Transitive MIDI parsing/writing |
+| midi-file | 1.2.4 | MIT | MIDI parsing/writing and signed key-signature meta events |
 | array-flatten | See package-lock.json | MIT | Transitive library dependency |
 
 ONNX, OSMD and PDF.js files come from exact npm distribution versions; Partsong's fetch script checks each library SHA-256. Build tooling versions and transitive dependencies are locked in package-lock.json. Tooling is not shipped as app runtime. Copies of applicable runtime license texts are in `docs/licenses/`. The source archive includes them. The unused mp4-muxer asset downloaded by the unmodified upstream script is excluded from the final runtime package.

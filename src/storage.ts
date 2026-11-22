@@ -8,6 +8,19 @@ export interface Project {
   updated: number;
   reviewed: boolean;
   recognizedPages?: string[];
+  performance?: {
+    notes: {
+      pitch: number;
+      beat: number;
+      duration: number;
+      velocity?: number;
+    }[];
+    bpm: number;
+    key: { fifths: number; mode: "major" | "minor" };
+    sourceStart: number;
+    grid: number;
+    meter: { beats: number; beatType: number };
+  };
   reference?: { url: string; title: string };
 }
 let opening: Promise<IDBDatabase> | undefined;
@@ -92,6 +105,45 @@ export function validateProject(value: unknown): Project {
       !v.recognizedPages.every((xml: unknown) => typeof xml === "string"))
   )
     throw Error("Invalid recognized-page progress");
+  if (v.performance) {
+    const p = v.performance;
+    if (
+      !Array.isArray(p.notes) ||
+      p.notes.length > 100000 ||
+      !p.notes.every(
+        (n: any) =>
+          Number.isInteger(n.pitch) &&
+          n.pitch >= 21 &&
+          n.pitch <= 108 &&
+          Number.isFinite(n.beat) &&
+          n.beat >= 0 &&
+          n.beat <= 100000 &&
+          Number.isFinite(n.duration) &&
+          n.duration > 0 &&
+          n.duration <= 4096 &&
+          (n.velocity === undefined ||
+            (Number.isFinite(n.velocity) &&
+              n.velocity >= 0 &&
+              n.velocity <= 1)),
+      ) ||
+      !Number.isFinite(p.bpm) ||
+      p.bpm < 40 ||
+      p.bpm > 240 ||
+      !Number.isFinite(p.sourceStart) ||
+      p.sourceStart < 0 ||
+      !p.key ||
+      !Number.isInteger(p.key.fifths) ||
+      Math.abs(p.key.fifths) > 7 ||
+      !["major", "minor"].includes(p.key.mode) ||
+      ![0.125, 0.25, 0.5].includes(p.grid) ||
+      !p.meter ||
+      !Number.isInteger(p.meter.beats) ||
+      p.meter.beats < 1 ||
+      p.meter.beats > 16 ||
+      ![2, 4, 8, 16].includes(p.meter.beatType)
+    )
+      throw Error("Invalid audio performance");
+  }
   const decode = (p: any) => {
     if (!p || typeof p.type !== "string" || typeof p.data !== "string")
       throw Error("Invalid project image");
@@ -109,6 +161,21 @@ export function validateProject(value: unknown): Project {
     updated: Date.now(),
     reviewed: !!v.reviewed,
     recognizedPages: v.recognizedPages ? [...v.recognizedPages] : undefined,
+    performance: v.performance
+      ? {
+          notes: v.performance.notes.map((n: any) => ({
+            pitch: n.pitch,
+            beat: n.beat,
+            duration: n.duration,
+            velocity: n.velocity,
+          })),
+          bpm: v.performance.bpm,
+          key: { ...v.performance.key },
+          sourceStart: v.performance.sourceStart,
+          grid: v.performance.grid,
+          meter: { ...v.performance.meter },
+        }
+      : undefined,
     reference:
       v.reference &&
       typeof v.reference.url === "string" &&

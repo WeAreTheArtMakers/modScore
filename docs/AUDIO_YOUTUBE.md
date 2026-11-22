@@ -1,6 +1,6 @@
 # Audio and YouTube → piano, MIDI and MusicXML
 
-modScore 0.5 runs Spotify Basic Pitch locally in a dedicated WebAssembly Worker. There is no paid transcription API, account or subscription. Audio decoding, note extraction, notation and MIDI export stay on your computer. The first use loads the bundled 230 KB model plus the shared ONNX runtime.
+modScore 0.6 runs Spotify Basic Pitch locally in a dedicated WebAssembly Worker. There is no paid transcription API, account or subscription. Audio decoding, note extraction, notation and MIDI export stay on your computer. The first use loads the bundled 230 KB model plus the shared ONNX runtime.
 
 ## Use an audio file — no helper needed
 
@@ -29,23 +29,25 @@ The helper binds only to `127.0.0.1:8790`, accepts the official app and document
 
 Use music you own or have permission to process. The helper does not use cookies, login credentials, access-control bypasses or DRM removal. Some videos, regions or networks will not work. If the browser blocks the local connection or a public download fails, use an authorized local audio file. YouTube access requires internet; already saved scores and local-file transcription can work offline after **Settings → Prepare offline use** completes.
 
-## What the generated score means
+## Tune the transcription
 
-Basic Pitch estimates note pitches, attacks, releases and amplitudes. It is most effective on a clean single-instrument recording. Drums, vocals, reverb and dense mixed music can create missing or extra notes. This is not a source-separation or guaranteed full-orchestra transcription system.
+Choose **Piano · balanced** for ordinary use. **Cleaner** suppresses weak/short detections and may omit real quiet/fast notes. **Detailed** retains faster passages but may add extra notes. Listen to the source preview before converting.
 
-- BPM is supplied by the user; the notation uses 4/4 and rounds onsets/releases to a 1/8-quarter-beat grid (32nd notes). This can simplify swing, rubato and tuplets. A deliberately wrong BPM produces wrong written rhythm.
-- The first detected onset is placed at the beginning of the score. Up to 180 seconds are analyzed; requested bars bound the generated score. A short recording can leave trailing rests.
-- Notes below MIDI 60 are placed on the lower piano staff; higher notes on the upper staff. This is a pitch split, not inferred physical left/right hand fingering.
-- Equal note intervals form chords; overlapping releases use independent voices. Sustains are tied only where notation values or barlines require it. Tempo, velocity, pitch and duration are included in MIDI export.
-- Automatic transcriptions remain marked **Review required**. Structural checks cannot prove musical accuracy. Compare with the original recording before relying on the notes.
+Suggested BPM comes from onset energy; turn its checkbox off to enter BPM yourself. Key is a duration-weighted suggestion or a manual choice, including **C minor · three flats**. The key affects spelling and leaves chromatic notes intact. Meter is selected explicitly (4/4, 3/4 or 6/8).
+
+Under **Notation and recording excerpt**, choose 1/8, 1/16 (default) or 1/32 notation and a starting second. Optional chord suggestions label pitch groups without creating accompaniment or changing any pitches. They require review.
+
+After conversion, **Export → Performance MIDI (.mid)** preserves detected timing before notation quantization/edits. **MIDI (.mid)** exports the current edited score; MusicXML preserves its notation. Both follow tempo/transpose export controls. Backups retain the original detected performance and audio. **Original** starts at the selected excerpt's first detected onset.
+
+Basic Pitch is most effective on a clean single-instrument recording. Drums, vocals, reverb and dense mixes can create missing/extra notes. Up to 180 seconds are analyzed; the requested bars bound the output. A short recording can leave trailing rests. Staff allocation uses a middle-C pitch split for automatic audio, rather than claimed physical-hand inference. Overlapping releases use independent voices; notes are tied only where the chosen values/barlines require it. The model does not infer expressive articulations or authoritative harmony.
 
 ## Included demos
 
-First launch opens **Basic Music — Baran Gulesen**, with the composer's permission. The 32-bar demo derives from the actual public recording, with a 9.525-second lead-in trimmed and an estimated 112 BPM. It contains 566 detected/quantized note events; it is not a composer-approved engraved score. The original recording is not distributed with the app.
+The **Basic Music — Baran Gulesen** demo now uses the composer's supplied notation reference: **C minor, three flats, 35 written measures / 136 quarter beats, 110 BPM and two traversals**. It replaces the inaccurate 0.5 audio-only demo. The source event data is reviewable in `public/demos/basic-music.score.json`. Earlier saved demo edits are preserved; open the corrected edition through its banner or home card. The original recording and screenshots are not bundled.
 
-**Ode to Joy — Ludwig van Beethoven** is a second 32-bar piano study: the public-domain 16-bar melody is played twice with an original accompaniment and an octave variation. It uses 96 BPM. Both demos are editable and available from the home screen; existing libraries are preserved and the welcome demo is opened automatically only once. Playback always requires a user gesture.
+**Ode to Joy — Ludwig van Beethoven** remains a 32-bar / 96 BPM original piano study of a public-domain melody. Both demos require a user gesture to play. Their [musical rights](../public/demos/LICENSE.md) are separate from the application license.
 
-A guided demo shows synchronized notation/falling notes/keys, then looping bars 1–4, metronome and keyboard controls. Reduced-motion preferences disable decorative animation. MusicXML and MIDI files are in [`public/demos`](../public/demos); read their [music rights](../public/demos/LICENSE.md).
+Score/keyboard following defaults off. Manual scrolling releases follow; explicitly enabling **Follow score** moves only the notation pane, without moving the whole page. Simple forward/backward repeats of 2–8 traversals are played; endings, navigation and nested repeats need external review. See the [0.6 verification report](SCORE_FIDELITY_06_2026-11-23.md).
 
 ## Model and corresponding source
 

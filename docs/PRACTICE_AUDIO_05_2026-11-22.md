@@ -1,5 +1,7 @@
 # 0.5 practice and audio verification — 2026-11-22
 
+> Historical 0.5 report: its automatic Basic Music edition was superseded by the composer-reference 0.6 edition. See `SCORE_FIDELITY_06_2026-11-23.md`.
+
 ## Scope
 
 This release adds a composer-authorized Basic Music demo, a Beethoven-themed piano study, guided practice controls and local audio transcription. It preserves the 0.4 optical music recognition pipeline. It does not claim that dense printed-score OMR or mixed-audio transcription has become error-free.

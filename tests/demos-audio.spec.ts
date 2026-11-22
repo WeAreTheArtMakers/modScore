@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { parseMidi } from "midi-file";
 test.use({ storageState: { cookies: [], origins: [] } });
-test("first launch opens Basic Music once, plays score and piano, and keeps both 32-bar demos editable", async ({
+test("first launch opens Basic Music once, plays score and piano, and keeps the corrected reference score and Beethoven editable", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -8,10 +10,8 @@ test("first launch opens Basic Music once, plays score and piano, and keeps both
   await page.goto("/");
   await expect(page.locator("h1")).toHaveText("Basic Music");
   await expect(page.locator("#notation svg").first()).toBeVisible();
-  await expect(page.locator("[data-measure]")).toHaveCount(32);
-  await expect(page.locator(".demo-banner")).toContainText(
-    "automatic transcription",
-  );
+  await expect(page.locator("[data-measure]")).toHaveCount(70);
+  await expect(page.locator(".demo-banner")).toContainText("three flats");
   await page
     .getByRole("button", { name: "Start guided demo", exact: true })
     .click();
@@ -44,7 +44,7 @@ test("first launch opens Basic Music once, plays score and piano, and keeps both
   const result = await page.evaluate(async () => {
     const { parseMusicXML } = await import("/src/music.ts");
     return Promise.all(
-      ["basic-music-32", "beethoven-ode-to-joy-32"].map(async (name) => {
+      ["basic-music", "beethoven-ode-to-joy-32"].map(async (name) => {
         const t = parseMusicXML(
           await (await fetch(`/demos/${name}.musicxml`)).text(),
         );
@@ -59,10 +59,10 @@ test("first launch opens Basic Music once, plays score and piano, and keeps both
     );
   });
   expect(result[0]).toMatchObject({
-    bars: 32,
-    beats: 128,
-    notes: 566,
-    tempo: 112,
+    bars: 70,
+    beats: 272,
+    notes: 1314,
+    tempo: 110,
   });
   expect(result[1]).toMatchObject({
     bars: 32,
@@ -85,7 +85,7 @@ test("returning library is preserved and a deleted demo is not silently re-added
   await expect(page.locator("h1")).toHaveText("Basic Music");
   await page.evaluate(async () => {
     const { deleteScore } = await import("/src/storage.ts");
-    await deleteScore("modscore-demo-basic-v1");
+    await deleteScore("modscore-demo-basic-v2");
   });
   await page.reload();
   await expect(page.locator("#demo-banner")).toHaveCount(0);
@@ -152,6 +152,7 @@ test("audio source workflow produces real MIDI from a locally inferred piano rec
     buffer: Buffer.from(wav),
   });
   await page.locator("#audio-title").fill("Local arpeggio");
+  await page.locator("#audio-auto-tempo").uncheck();
   await page.locator("#audio-bpm").fill("60");
   await page.locator("#audio-bars").selectOption("8");
   await page
@@ -178,6 +179,29 @@ test("audio source workflow produces real MIDI from a locally inferred piano rec
   await page.getByRole("button", { name: "MIDI (.mid)", exact: true }).click();
   const download = await pending;
   expect(download.suggestedFilename()).toMatch(/\.mid$/);
+  const raw = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Performance MIDI (.mid)", exact: true })
+    .click();
+  const performance = parseMidi(
+    new Uint8Array(await readFile((await (await raw).path())!)),
+  );
+  expect(
+    performance.tracks
+      .flat()
+      .filter((e) => e.type === "noteOn")
+      .map((e) => (e.type === "noteOn" ? e.noteNumber : 0)),
+  ).toEqual(expect.arrayContaining([57, 60, 64, 69]));
+  const backup = await page.evaluate(async () => {
+    const { listScores, exportProject, validateProject } = await import(
+      "/src/storage.ts"
+    );
+    const p = (await listScores()).find((p) => p.title === "Local arpeggio")!;
+    return validateProject(JSON.parse(await (await exportProject(p)).text()))
+      .performance;
+  });
+  expect(backup?.notes.length).toBeGreaterThanOrEqual(4);
+  expect(backup?.bpm).toBe(60);
 });
 test("YouTube links are validated before network and helper failure offers the audio fallback", async ({
   page,

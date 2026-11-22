@@ -1,3 +1,8 @@
+import {
+  audioProfiles,
+  cleanDetections,
+  type AudioProfile,
+} from "./audio-analysis";
 /// <reference lib="webworker" />
 import {
   outputToNotesPoly,
@@ -61,11 +66,25 @@ self.onmessage = async ({ data }) => {
       for (const tensor of Object.values(result) as any[]) tensor.dispose?.();
       self.postMessage({ type: "progress", value: (i + 1) / total });
     }
-    const notes = noteFramesToTime(
-      outputToNotesPoly(frames, onsets, 0.5, 0.3, 8, true, null, null, false),
-    ).filter(
-      (n: any) =>
-        n.amplitude >= 0.25 && n.pitchMidi >= 21 && n.pitchMidi <= 108,
+    const profile: AudioProfile = Object.hasOwn(audioProfiles, data.profile)
+      ? data.profile
+      : "piano";
+    const settings = audioProfiles[profile];
+    const notes = cleanDetections(
+      noteFramesToTime(
+        outputToNotesPoly(
+          frames,
+          onsets,
+          settings.onset,
+          settings.frame,
+          Math.max(2, Math.round(settings.minSeconds * 86)),
+          true,
+          null,
+          null,
+          false,
+        ),
+      ),
+      profile,
     );
     self.postMessage({ type: "result", notes });
   } catch (e) {

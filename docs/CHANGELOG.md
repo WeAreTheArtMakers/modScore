@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6 — reference notation, audio controls and free browsing
+
+- Replace the inaccurate Basic Music demo with a 35-bar C-minor/three-flat reference edition, explicit clefs, short ending and a played repeat; preserve earlier saved edits.
+- Add Balanced/Cleaner/Detailed audio detection, key/BPM suggestions and overrides, meter/grid/start controls, source preview and chord suggestions.
+- Keep detected performance in backups and export it separately from edited score MIDI.
+- Play bounded simple repeats and explicit release/accent articulations; encode MIDI key signatures correctly with the pinned underlying codec.
+- Default follow off, release it on manual browsing and scroll only the notation pane, without residual smooth-scroll animation.
+
 ## 0.5 — demos, local audio transcription and practice
 
 - Composer-authorized Basic Music first-run demo and an original 32-bar Ode to Joy piano study, with explicit music rights and MIDI/MusicXML assets.

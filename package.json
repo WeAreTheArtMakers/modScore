@@ -1,6 +1,6 @@
 {
   "name": "modscore",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
@@ -18,7 +18,8 @@
     "youtube:helper": "node scripts/youtube-helper.mjs"
   },
   "dependencies": {
-    "@tonejs/midi": "2.0.28"
+    "@tonejs/midi": "2.0.28",
+    "midi-file": "1.2.4"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",

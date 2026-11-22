@@ -4,7 +4,9 @@
 
 Composition © Baran Gulesen. Included as modScore's first demo with the composer's explicit permission. Musical rights remain with the composer; the application's software license does not grant a separate general license to the composition.
 
-The 32-bar score is an automatic Basic Pitch transcription of the opening musical passage from the composer's public recording: https://www.youtube.com/watch?v=AN0wGBUxkIk . The leading 9.525 seconds are trimmed; the notation uses an estimated 112 BPM and a 1/8-quarter-beat grid. Pitches, durations and hand assignments require review. The original audio is not bundled.
+The current reference edition follows the composer's seven supplied score screenshots: C minor (three flats), 35 written measures / 136 quarter beats, 110 BPM, played twice. Note data is retained in `basic-music.score.json`; `scripts/build-basic-demo.mjs` rebuilds the MusicXML and MIDI. The two short closing measures are retained. Original screenshots and audio are not distributed.
+
+The 0.5 audio-only edition is superseded. Existing `basic-music-32` downloads now contain corrected first-32-bar excerpts. The full reference edition is `basic-music.musicxml` / `basic-music.mid`. The composer's recording remains at https://www.youtube.com/watch?v=AN0wGBUxkIk .
 
 ## Ode to Joy — Ludwig van Beethoven
 

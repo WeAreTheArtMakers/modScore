@@ -9,6 +9,10 @@ export const colors = [
   "#8ee3cc",
 ];
 export class Piano {
+  onManualBrowse: () => void = () => {};
+  resumeAuto() {
+    this.autoUntil = 0;
+  }
   private keys = new Map<number, HTMLButtonElement>();
   private fingers = new Map<number, { released: boolean; stop?: () => void }>();
   private canvas: HTMLCanvasElement;
@@ -76,9 +80,27 @@ export class Piano {
     );
     root.addEventListener(
       "wheel",
-      () => (this.autoUntil = performance.now() + 6000),
+      () => {
+        this.autoUntil = Infinity;
+        this.onManualBrowse();
+      },
       { passive: true },
     );
+    root.addEventListener(
+      "touchmove",
+      () => {
+        this.autoUntil = Infinity;
+        this.onManualBrowse();
+      },
+      { passive: true },
+    );
+    root.addEventListener("pointerdown", (event) => {
+      const r = root.getBoundingClientRect();
+      if (event.clientY >= r.top + root.clientHeight) {
+        this.autoUntil = Infinity;
+        this.onManualBrowse();
+      }
+    });
     this.zoom(32);
     requestAnimationFrame(() => (root.scrollLeft = 650));
   }

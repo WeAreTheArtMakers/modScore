@@ -11,7 +11,7 @@
 </p>
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-b6ef72?style=flat-square"></a>
-  <img alt="Version 0.5.0" src="https://img.shields.io/badge/version-0.5.0-80cae9?style=flat-square">
+  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-80cae9?style=flat-square">
   <img alt="Local processing" src="https://img.shields.io/badge/processing-on_device-b6ef72?style=flat-square">
 </p>
 
@@ -34,15 +34,15 @@ modScore turns printed sheet music into notation you can hear, see and practice.
 
 The **Original test score (CC0)** is included for exploring playback. It opens reference MusicXML and is explicitly labeled; it is not presented as a recognition result.
 
-## New in 0.5: your music, ready to play
+## New in 0.6: reference notation and free practice
 
-First launch opens **Basic Music — Baran Gulesen**, a 32-bar automatic transcription included with the composer's permission. Choose **Start guided demo** to see the score, falling notes and piano together, followed by measure looping, metronome and keyboard controls. A second **Ode to Joy** demo offers a 32-bar Beethoven-themed piano study. Existing libraries are preserved; no audio autoplays. Demo music rights are documented [separately](public/demos/LICENSE.md).
+**Basic Music — Baran Gulesen** now follows the composer's supplied score: **C minor, three flats, 35 written measures and a played repeat at 110 BPM**. This replaces the inaccurate 0.5 automatic demo. The earlier saved copy and user edits are preserved; its banner opens the corrected edition. A 32-bar Ode to Joy piano study remains available. [Demo music rights](public/demos/LICENSE.md) are separate from the software license.
 
-**Audio & YouTube** turns a local recording into editable piano notation and MIDI using Spotify Basic Pitch on your device. Local files need no server. YouTube links use the optional free `npm run youtube:helper` process on your computer, since a static browser app cannot directly read YouTube streams. See the [simple setup and transcription guide](docs/AUDIO_YOUTUBE.md) and [0.5 verification report](docs/PRACTICE_AUDIO_05_2026-11-22.md). No paid API is used; transcription is an estimate and must be reviewed.
+**Audio & YouTube** offers Balanced, Cleaner and Detailed detection, suggested/manual BPM and key, 4/4–3/4–6/8, a notation grid and recording start time. Optional chord suggestions add labels rather than notes. **Performance MIDI** keeps detected timing; ordinary MIDI and MusicXML follow the edited, quantized score. Automatic detection still needs review. YouTube uses the free optional local helper; local files run directly in the browser. [Audio guide](docs/AUDIO_YOUTUBE.md) · [0.6 findings and measured comparison](docs/SCORE_FIDELITY_06_2026-11-23.md).
 
-Loops now use a continuous audio clock across turns. Select a range by clicking its first and last measure or entering numbers. The metronome follows the score's time signature, accents bar starts and has its own volume. Virtual piano controls collect octave buttons, Z/X shortcuts and a compact expandable keyboard diagram in one place.
+Score and keyboard auto-positioning default off. Manual browsing releases following; enabling **Follow score** moves only the notation pane and never pulls the whole page back. Simple bounded repeats, explicit staccato/accent playback and correct signed MIDI key-signature export are supported.
 
-![Basic Music demo in modScore](docs/validation/demo-desktop.png)
+![Basic Music reference score in modScore](docs/validation/demo-desktop.png)
 
 ## Recognition improvements in 0.4
 

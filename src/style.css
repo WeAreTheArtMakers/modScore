@@ -683,6 +683,7 @@ progress {
   margin: 9px 0;
 }
 .score-workspace {
+  overflow-anchor: none;
   height: clamp(260px, 36vh, 480px);
   overflow: auto;
   overscroll-behavior: contain;
@@ -2112,4 +2113,31 @@ kbd {
   .tour-focus {
     transition: none;
   }
+}
+.audio-output-note {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: var(--raised);
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.audio-notation-options .audio-fields {
+  margin: 1rem 0;
+}
+#audio-preview {
+  width: 100%;
+  margin: 0.75rem 0;
+}
+.follow-control {
+  cursor: pointer;
+}
+.score-workspace:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.audio-fields label {
+  min-width: 0;
+}
+.audio-fields select {
+  max-width: 100%;
 }

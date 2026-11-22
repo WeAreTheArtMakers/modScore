@@ -101,3 +101,13 @@ The active SIMD reader variants can be rebuilt with Rust 1.96 and the wasm32 tar
 `demos.ts` seeds the composer-authorized Basic Music only for an empty first-run library. Existing demo projects are reused, preserving edits. A first-run local preference prevents deleted demos from silently returning. The guided tour starts only on a user gesture; its decorative motion respects reduced-motion settings.
 
 The optional `scripts/youtube-helper.mjs` is a loopback HTTP adapter with explicit origin/URL validation and bounded temporary downloads. It has no shell interpolation, cookie/login support or remote transcription endpoint. See `docs/AUDIO_YOUTUBE.md` and the model/music notices.
+
+## Fidelity and audio controls (0.6)
+
+`notation.ts` centralizes key-aware pitch spelling, duration-weighted key suggestions and optional non-generative chord labels. `audio-analysis.ts` defines explicit acoustic profiles and a bounded onset-energy BPM suggestion. These do not project pitches into a scale. `piano-score.ts` accepts key, meter, staff assignments, clef changes and explicit short measures. Detected timing is stored separately in project `performance` data and survives backup validation; score MIDI and original-performance MIDI remain distinct exports.
+
+`repeats.ts` expands bounded non-nested repeats and maps performed beats back to written beats for the cursor. Explicit articulation releases/accents affect the shared audio/WAV/MIDI path while keeping notated duration. MIDI key meta events use the pinned `midi-file` codec to avoid the upstream Tone writer's signed-index defect.
+
+The composer-reference Basic Music lives in `public/demos/basic-music.score.json` and rebuilds with `scripts/build-basic-demo.mjs`; it replaces the initial audio-only approximation. The old project ID is preserved and offers a new edition rather than silently overwriting user edits.
+
+Following is opt-in. `Sheet` updates the notation container's scroll position, never the window's, and cancels follow after manual input. Instant pane alignment avoids residual compositor scrolling; scroll anchoring is disabled. Piano browsing likewise releases automatic horizontal positioning.

@@ -1,3 +1,4 @@
+import { expandRepeats } from "./repeats";
 export interface Note {
   id: string;
   pitch: number;
@@ -9,6 +10,8 @@ export interface Note {
   measure: number;
   velocity: number;
   source: number[];
+  soundDuration?: number;
+  articulations?: string[];
 }
 export interface Measure {
   index: number;
@@ -17,6 +20,9 @@ export interface Measure {
   duration: number;
   page: number;
   meter?: { beats: number; beatType: number };
+  sourceMeasure?: number;
+  sourceBeat?: number;
+  pass?: number;
 }
 export interface Tempo {
   beat: number;
@@ -36,6 +42,9 @@ export interface Timeline {
   tracks: Track[];
   duration: number;
   warnings: string[];
+  key?: { fifths: number; mode: "major" | "minor" };
+  writtenMeasures?: number;
+  writtenDuration?: number;
 }
 const steps: Record<string, number> = {
   C: 0,
@@ -124,7 +133,8 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
     let divisions = 1,
       beats = 4,
       beatType = 4,
-      transpose = 0;
+      transpose = 0,
+      dynamic = 0.75;
     const staged: { note: Note; localBeat: number }[] = [];
     const measures = children(part, "measure");
     for (let mi = 0; mi < measures.length; mi++) {
@@ -159,6 +169,26 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
           at += num(el, "duration") / divisions;
           max = Math.max(max, at);
         } else if (el.localName === "direction") {
+          const soundDynamics = el.querySelector("sound[dynamics]");
+          const levels: Record<string, number> = {
+            ppp: 0.25,
+            pp: 0.35,
+            p: 0.5,
+            mp: 0.65,
+            mf: 0.78,
+            f: 0.9,
+            ff: 1,
+            fff: 1,
+          };
+          const marking =
+            el.querySelector("dynamics")?.firstElementChild?.localName;
+          if (marking && levels[marking] !== undefined)
+            dynamic = levels[marking];
+          if (soundDynamics) {
+            const value = Number(soundDynamics.getAttribute("dynamics"));
+            if (Number.isFinite(value))
+              dynamic = Math.max(0, Math.min(1, value / 100));
+          }
           let bpm = num(el, "sound[tempo]", 0);
           const sound = el.querySelector("sound[tempo]");
           if (sound) bpm = Number(sound.getAttribute("tempo"));
@@ -233,7 +263,17 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
             );
             continue;
           }
-          const dynamics = Number(el.getAttribute("dynamics") ?? 75);
+          const dynamics = Number(el.getAttribute("dynamics") ?? dynamic * 100);
+          const articulations = Array.from(
+            el.querySelectorAll("notations > articulations > *"),
+          ).map((n) => n.localName);
+          const gate = articulations.includes("staccatissimo")
+            ? 0.3
+            : articulations.includes("staccato")
+              ? 0.55
+              : articulations.includes("tenuto")
+                ? 1
+                : 1;
           const note: Note = {
             id: `n${si}`,
             pitch,
@@ -245,9 +285,19 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
             measure: mi,
             velocity: Math.max(
               0,
-              Math.min(1, Number.isFinite(dynamics) ? dynamics / 100 : 0.75),
+              Math.min(
+                1,
+                (Number.isFinite(dynamics) ? dynamics / 100 : 0.75) *
+                  (articulations.includes("accent")
+                    ? 1.15
+                    : articulations.includes("strong-accent")
+                      ? 1.25
+                      : 1),
+              ),
             ),
             source: [si],
+            soundDuration: gate === 1 ? undefined : dur * gate,
+            articulations: articulations.length ? articulations : undefined,
           };
           miNotes.push({ note, localBeat: start });
         }
@@ -266,7 +316,7 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
         measurePages[mi] = Number(m.getAttribute("data-modscore-page")) || 0;
       measureNumbers[mi] = m.getAttribute("number") || String(mi + 1);
       staged.push(...miNotes);
-      if (m.querySelector("repeat,ending"))
+      if (m.querySelector("ending"))
         warnings.add(
           "Repeat signs/endings are displayed; playback currently follows written measure order.",
         );
@@ -311,6 +361,10 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
       before &&
       Math.abs(before.beat + before.duration - n.beat) < 0.0001
     ) {
+      before.soundDuration =
+        n.soundDuration === undefined
+          ? undefined
+          : before.duration + n.soundDuration;
       before.duration += n.duration;
       before.source.push(...n.source);
       if (!types.includes("start")) pending.delete(key);
@@ -339,19 +393,31 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
     warnings.add(
       "Some notes are outside A0–C8; audio plays their true pitch, and the piano omits those keys.",
     );
-  return {
-    title: txt(
-      doc.documentElement,
-      "work-title",
-      txt(doc.documentElement, "movement-title", title),
-    ),
-    notes: merged.sort((a, b) => a.beat - b.beat),
-    measures,
-    tempos: unique,
-    tracks,
-    duration: beat,
-    warnings: [...warnings],
-  };
+  return expandRepeats(
+    {
+      key: doc.querySelector("key > fifths")
+        ? {
+            fifths: Number(doc.querySelector("key > fifths")!.textContent),
+            mode:
+              doc.querySelector("key > mode")?.textContent === "minor"
+                ? "minor"
+                : "major",
+          }
+        : undefined,
+      title: txt(
+        doc.documentElement,
+        "work-title",
+        txt(doc.documentElement, "movement-title", title),
+      ),
+      notes: merged.sort((a, b) => a.beat - b.beat),
+      measures,
+      tempos: unique,
+      tracks,
+      duration: beat,
+      warnings: [...warnings],
+    },
+    doc,
+  );
 }
 export function beatToSeconds(beat: number, tempos: Tempo[], speed = 1) {
   let sec = 0;
@@ -375,7 +441,9 @@ export function secondsToBeat(seconds: number, tempos: Tempo[], speed = 1) {
   return 0;
 }
 export function activeNotes(t: Timeline, beat: number) {
-  return t.notes.filter((n) => n.beat <= beat && n.beat + n.duration > beat);
+  return t.notes.filter(
+    (n) => n.beat <= beat && n.beat + (n.soundDuration ?? n.duration) > beat,
+  );
 }
 /** Raise a part's tick resolution without changing any encoded musical time. */
 function refineDivisionGrid(

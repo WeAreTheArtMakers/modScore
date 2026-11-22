@@ -1,3 +1,5 @@
+import { parseMidi, writeMidi } from "midi-file";
+import { spellPitch } from "./notation";
 import { Midi } from "@tonejs/midi";
 import type { Timeline } from "./music";
 const midiText = (value: string) =>
@@ -20,6 +22,18 @@ export function exportMidi(t: Timeline, transpose = 0, speed = 1) {
     ticks: Math.round(p.beat * midi.header.ppq),
     bpm: p.bpm * speed,
   }));
+  midi.header.timeSignatures = t.measures
+    .filter(
+      (m, i) =>
+        m.meter &&
+        (!i ||
+          m.meter.beats !== t.measures[i - 1].meter?.beats ||
+          m.meter.beatType !== t.measures[i - 1].meter?.beatType),
+    )
+    .map((m) => ({
+      ticks: Math.round(m.beat * midi.header.ppq),
+      timeSignature: [m.meter!.beats, m.meter!.beatType],
+    }));
   midi.header.update();
   for (const part of t.tracks) {
     const track = midi.addTrack();
@@ -33,12 +47,25 @@ export function exportMidi(t: Timeline, transpose = 0, speed = 1) {
       track.addNote({
         midi: pitch,
         ticks: Math.round(n.beat * midi.header.ppq),
-        durationTicks: Math.round(n.duration * midi.header.ppq),
+        durationTicks: Math.round(
+          (n.soundDuration ?? n.duration) * midi.header.ppq,
+        ),
         velocity: n.velocity,
       });
     }
   }
-  return new Blob([new Uint8Array(midi.toArray())], { type: "audio/midi" });
+  // @tonejs/midi 2.0.28 writes key-signature sf with a +7 index error.
+  // Encode this standard signed meta event directly with its underlying MIDI codec.
+  const data = parseMidi(midi.toArray());
+  if (t.key)
+    data.tracks[0].unshift({
+      deltaTime: 0,
+      meta: true,
+      type: "keySignature",
+      key: t.key.fifths,
+      scale: t.key.mode === "minor" ? 1 : 0,
+    });
+  return new Blob([new Uint8Array(writeMidi(data))], { type: "audio/midi" });
 }
 const esc = (s: string) =>
   s.replace(
@@ -57,20 +84,26 @@ export function midiToXml(buffer: ArrayBuffer, title: string) {
   const ticks = 480;
   const tracks = midi.tracks.filter((t) => t.notes.length);
   if (!tracks.length) throw Error("MIDI has no note events");
-  const pitchNames = [
-    "C",
-    "C",
-    "D",
-    "D",
-    "E",
-    "F",
-    "F",
-    "G",
-    "G",
-    "A",
-    "A",
-    "B",
-  ];
+  const sig = midi.header.keySignatures[0];
+  const fifths = sig
+    ? [
+        "Cb",
+        "Gb",
+        "Db",
+        "Ab",
+        "Eb",
+        "Bb",
+        "F",
+        "C",
+        "G",
+        "D",
+        "A",
+        "E",
+        "B",
+        "F#",
+        "C#",
+      ].indexOf(sig.key) - 7
+    : 0;
   let xml = `<?xml version="1.0"?><score-partwise version="4.0"><work><work-title>${esc(midi.name ? readMidiText(midi.name) : title)}</work-title></work><part-list>`;
   tracks.forEach(
     (t, i) =>
@@ -92,7 +125,7 @@ export function midiToXml(buffer: ArrayBuffer, title: string) {
     for (let m = 0; m < count; m++) {
       const start = m * barBeats,
         finish = start + barBeats;
-      xml += `<measure number="${m + 1}"><attributes><divisions>${ticks}</divisions>${m === 0 ? `<time><beats>${signature[0]}</beats><beat-type>${signature[1]}</beat-type></time><clef><sign>G</sign><line>2</line></clef>` : ""}</attributes>`;
+      xml += `<measure number="${m + 1}"><attributes><divisions>${ticks}</divisions>${m === 0 ? `<key><fifths>${fifths}</fifths><mode>${sig?.scale || "major"}</mode></key><time><beats>${signature[0]}</beats><beat-type>${signature[1]}</beat-type></time><clef><sign>G</sign><line>2</line></clef>` : ""}</attributes>`;
       for (const tempo of midi.header.tempos.filter(
         (t) => t.ticks / ppq >= start && t.ticks / ppq < finish,
       )) {
@@ -109,8 +142,8 @@ export function midiToXml(buffer: ArrayBuffer, title: string) {
           xml += `<backup><duration>${Math.round(barBeats * ticks)}</duration></backup>`;
         if (local)
           xml += `<forward><duration>${Math.round(local * ticks)}</duration></forward>`;
-        const pc = n.midi % 12;
-        xml += `<note><pitch><step>${pitchNames[pc]}</step>${[1, 3, 6, 8, 10].includes(pc) ? "<alter>1</alter>" : ""}<octave>${Math.floor(n.midi / 12) - 1}</octave></pitch><duration>${Math.round(dur * ticks)}</duration>${b < start ? '<tie type="stop"/>' : ""}${e > finish ? '<tie type="start"/>' : ""}<voice>${ni + 1}</voice></note>`;
+        const pitch = spellPitch(n.midi, fifths);
+        xml += `<note><pitch><step>${pitch.step}</step>${pitch.alter ? `<alter>${pitch.alter}</alter>` : ""}<octave>${pitch.octave}</octave></pitch><duration>${Math.round(dur * ticks)}</duration>${b < start ? '<tie type="stop"/>' : ""}${e > finish ? '<tie type="start"/>' : ""}<voice>${ni + 1}</voice></note>`;
         const rest = barBeats - local - dur;
         if (rest > 0.00001)
           xml += `<forward><duration>${Math.round(rest * ticks)}</duration></forward>`;

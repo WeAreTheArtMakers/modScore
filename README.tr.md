@@ -5,17 +5,17 @@
 
 modScore, basılı notaları tarayıcınızda tanıyıp seslendirmenizi ve 88 tuşlu piyano üzerinde takip etmenizi sağlar. Hesap, ücretli servis, reklam veya nota yüklemesi gerekmez. Nota dosyaları cihazınızda işlenir ve tarayıcınızın yerel kitaplığında saklanır.
 
-**Geliştirme sürümü 0.5.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
+**Geliştirme sürümü 0.6.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
 
 ![modScore ve projeyle gelen özgün CC0 çalışma notası](docs/preview.png)
 
-## 0.5: demo, sesten MIDI ve çalışma kontrolleri
+## 0.6: doğru referans nota ve serbest çalışma
 
-İlk açılışta bestecisinin izniyle **Basic Music — Baran Gulesen** açılır: gerçek kayıttan çıkarılan 32 ölçülük otomatik transkripsiyondur; notalar kontrol edilmelidir. **Start guided demo**, nota–piyano takibini, 1–4 ölçü döngüsünü, metronomu ve klavye kontrollerini gösterir. Beethoven’ın **Ode to Joy** temasından ikinci bir 32 ölçülük piyano etüdü de vardır. Ses kendiliğinden başlamaz, mevcut arşiv korunur.
+**Basic Music — Baran Gulesen**, gönderilen nota referansına göre **Do minör, üç bemol, 35 yazılı ölçü, 110 BPM ve tekrar** olarak yenilendi. 0.5’in hatalı otomatik demosu değiştirildi; eski kayıttaki kullanıcı düzenlemeleri korunur ve yeni sürüm ayrı açılır. Beethoven’ın 32 ölçülük Ode to Joy etüdü de kullanılabilir.
 
-**Audio & YouTube**, ses dosyasını Spotify Basic Pitch ile bilgisayarınızda analiz edip düzenlenebilir nota ve MIDI oluşturur. Dosyalar doğrudan tarayıcıda çalışır; YouTube bağlantıları için ücretsiz `npm run youtube:helper` yerel yardımcısı gerekir. Ücretli API yoktur. [Kurulum, kullanım ve sınırlar](docs/AUDIO_YOUTUBE.md). Demo müziklerinin hakları [ayrı belirtilmiştir](public/demos/LICENSE.md).
+**Ses ve YouTube**: Dengeli/Temiz/Ayrıntılı algılama, önerilen veya elle seçilen BPM ve ton, 4/4–3/4–6/8, ritim ızgarası, başlangıç saniyesi ve isteğe bağlı akor etiketleri. Performans MIDI, algılanan zamanları korur; normal MIDI/MusicXML düzenlenmiş notayı kullanır. Otomatik sonuçlar kontrol edilmelidir. [Kullanım](docs/AUDIO_YOUTUBE.md) · [0.6 incelemesi ve ölçümler](docs/SCORE_FIDELITY_06_2026-11-23.md).
 
-Döngü geçişleri sürekli ses saatini kullanır. İlk/son ölçüye tıklayarak aralık seçebilirsiniz. Metronom ölçü işaretini izler ve bağımsız küçük ses kontrolü sunar. Sanal piyanoda oktav, Z/X ve genişletilebilir tuş haritası tek yerde toplanmıştır.
+Ekran ve piyano takibi varsayılan olarak kapalıdır. Elle kaydırınca takip serbest kalır; takip açıldığında yalnızca nota alanı kayar. Basit tekrarlar çalınır, açıkça yazılmış staccato/vurgular sese yansır ve MIDI’de donanım doğru korunur.
 
 ## 0.4 ile iyileşenler
 

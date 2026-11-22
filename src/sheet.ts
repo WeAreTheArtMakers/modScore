@@ -4,8 +4,9 @@ let script: Promise<void> | undefined;
 function load() {
   return (script ??= new Promise<void>((resolve, reject) => {
     const s = document.createElement("script");
-    s.src =
-      assetPath("lib/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js");
+    s.src = assetPath(
+      "lib/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js",
+    );
     s.onload = () => resolve();
     s.onerror = () => {
       script = undefined;
@@ -17,8 +18,14 @@ function load() {
 export class Sheet {
   osmd: any;
   onSeek: (measure: number) => void = () => {};
+  onManualBrowse: () => void = () => {};
+  private browseCleanup: (() => void)[] = [];
+  resumeFollow() {
+    this.last = -1;
+  }
   private generation = 0;
   private last = -1;
+  private wasFollowing = false;
   private index = 0;
   private positions: number[] = [];
   private observer?: ResizeObserver;
@@ -33,6 +40,41 @@ export class Sheet {
     if (generation !== this.generation) return;
     if (!element.isConnected) return;
     this.element = element;
+    const pane = element.closest<HTMLElement>(".score-workspace") || element;
+    const manual = () => {
+      pane.scrollTo({
+        top: pane.scrollTop,
+        left: pane.scrollLeft,
+        behavior: "instant",
+      });
+      this.onManualBrowse();
+    };
+    const keys = (event: KeyboardEvent) => {
+      if (
+        ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(
+          event.key,
+        )
+      )
+        manual();
+    };
+    pane.addEventListener("wheel", manual, { passive: true });
+    pane.addEventListener("touchmove", manual, { passive: true });
+    pane.addEventListener("keydown", keys);
+    const scrollbar = (event: PointerEvent) => {
+      const rect = pane.getBoundingClientRect();
+      if (
+        event.clientX >= rect.left + pane.clientWidth ||
+        event.clientY >= rect.top + pane.clientHeight
+      )
+        manual();
+    };
+    pane.addEventListener("pointerdown", scrollbar);
+    this.browseCleanup.push(() => {
+      pane.removeEventListener("wheel", manual);
+      pane.removeEventListener("touchmove", manual);
+      pane.removeEventListener("keydown", keys);
+      pane.removeEventListener("pointerdown", scrollbar);
+    });
     this.osmd = new (window as any).opensheetmusicdisplay.OpenSheetMusicDisplay(
       element,
       {
@@ -123,6 +165,8 @@ export class Sheet {
   update(beat: number, follow: boolean) {
     const c = this.osmd?.cursor;
     if (!c || !this.positions.length) return;
+    const beganFollowing = follow && !this.wasFollowing;
+    this.wasFollowing = follow;
     let lo = 0,
       hi = this.positions.length;
     while (lo < hi) {
@@ -136,23 +180,44 @@ export class Sheet {
       this.index = 0;
       this.last = -1;
     }
-    if (target === this.index && this.last >= 0) return;
+    if (target === this.index && this.last >= 0 && !beganFollowing) return;
     while (this.index < target && !c.Iterator.EndReached) {
       c.next();
       this.index++;
     }
     c.show();
     const measure = c.Iterator.CurrentMeasureIndex;
-    if (follow && measure !== this.last)
-      c.cursorElement?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "nearest",
-      });
+    if (
+      follow &&
+      (measure !== this.last || beganFollowing) &&
+      c.cursorElement &&
+      this.element
+    ) {
+      const pane =
+        this.element.closest<HTMLElement>(".score-workspace") || this.element;
+      const cursor = c.cursorElement.getBoundingClientRect(),
+        box = pane.getBoundingClientRect();
+      const top =
+        cursor.top < box.top + 20 || cursor.bottom > box.bottom - 20
+          ? Math.max(0, pane.scrollTop + cursor.top - box.top - 24)
+          : pane.scrollTop;
+      const left =
+        cursor.left < box.left || cursor.right > box.right
+          ? Math.max(0, pane.scrollLeft + cursor.left - box.left - 24)
+          : pane.scrollLeft;
+      if (top !== pane.scrollTop || left !== pane.scrollLeft)
+        pane.scrollTo({
+          top,
+          left,
+          behavior: "instant",
+        });
+    }
     this.last = measure;
   }
   clear() {
     this.generation++;
+    this.wasFollowing = false;
+    this.browseCleanup.splice(0).forEach((clean) => clean());
     if (this.element) this.element.onclick = null;
     this.observer?.disconnect();
     clearTimeout(this.resizeTimer);

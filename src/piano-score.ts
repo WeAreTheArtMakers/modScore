@@ -1,8 +1,22 @@
+import {
+  spellPitch,
+  keyAlterations,
+  estimateKey,
+  suggestChord,
+  type KeySignature,
+} from "./notation";
 export interface PianoEvent {
   pitch: number;
   beat: number;
   duration: number;
   velocity?: number;
+  staff?: 1 | 2;
+  articulation?:
+    | "staccato"
+    | "staccatissimo"
+    | "tenuto"
+    | "accent"
+    | "strong-accent";
 }
 const escape = (v: string) =>
   v.replace(
@@ -70,10 +84,49 @@ export function pianoScore(
     bpm: number;
     notice?: string;
     rights?: string;
+    key?: KeySignature;
+    meter?: { beats: number; beatType: number };
+    clefs?: {
+      beat: number;
+      staff: number;
+      sign: "G" | "F";
+      line: number;
+      octaveChange?: number;
+    }[];
+    chordSuggestions?: boolean;
+    barDurations?: number[];
   },
 ) {
   const { bars, bpm } = options,
     divisions = 96;
+  const key = options.key || { fifths: 0, mode: "major" },
+    meter = options.meter || { beats: 4, beatType: 4 };
+  const barBeats = (meter.beats * 4) / meter.beatType;
+  if (
+    !Number.isInteger(key.fifths) ||
+    Math.abs(key.fifths) > 7 ||
+    !["major", "minor"].includes(key.mode) ||
+    !Number.isInteger(meter.beats) ||
+    meter.beats < 1 ||
+    meter.beats > 16 ||
+    ![2, 4, 8, 16].includes(meter.beatType)
+  )
+    throw Error("Invalid key or time signature");
+  const lengths = options.barDurations || Array(bars).fill(barBeats);
+  if (
+    lengths.length !== bars ||
+    lengths.some(
+      (n) =>
+        !Number.isFinite(n) ||
+        n <= 0 ||
+        n > barBeats ||
+        Math.abs(n * 8 - Math.round(n * 8)) > 1e-7,
+    )
+  )
+    throw Error("Invalid measure lengths");
+  const starts = lengths.reduce<number[]>((a, n) => [...a, a.at(-1)! + n], [0]),
+    totalBeats = starts.at(-1)!;
+  const clefs = (options.clefs || []).slice().sort((a, b) => a.beat - b.beat);
   if (
     !Number.isInteger(bars) ||
     bars < 1 ||
@@ -93,9 +146,9 @@ export function pianoScore(
         Number.isFinite(n.duration) &&
         n.duration > 0 &&
         n.beat >= 0 &&
-        n.beat < bars * 4,
+        n.beat < totalBeats,
     )
-    .map((n) => ({ ...n, end: Math.min(bars * 4, n.beat + n.duration) }));
+    .map((n) => ({ ...n, end: Math.min(totalBeats, n.beat + n.duration) }));
   if (
     notes.some(
       (n) =>
@@ -105,20 +158,49 @@ export function pianoScore(
   )
     throw Error("Notes must use the 1/8-beat notation grid");
   const hands = [
-    voices(notes.filter((n) => n.pitch >= 60)),
-    voices(notes.filter((n) => n.pitch < 60)),
+    voices(notes.filter((n) => (n.staff ?? (n.pitch >= 60 ? 1 : 2)) === 1)),
+    voices(notes.filter((n) => (n.staff ?? (n.pitch >= 60 ? 1 : 2)) === 2)),
   ];
   const pitch = (p: number) => {
-    const step = ["C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"][
-      p % 12
-    ];
-    return `<pitch><step>${step}</step>${[1, 3, 6, 8, 10].includes(p % 12) ? "<alter>1</alter>" : ""}<octave>${Math.floor(p / 12) - 1}</octave></pitch>`;
+    const n = spellPitch(p, key.fifths);
+    return `<pitch><step>${n.step}</step>${n.alter ? `<alter>${n.alter}</alter>` : ""}<octave>${n.octave}</octave></pitch>`;
   };
+  const clefXml = (c: {
+    staff: number;
+    sign: string;
+    line: number;
+    octaveChange?: number;
+  }) =>
+    `<clef number="${c.staff}"><sign>${c.sign}</sign><line>${c.line}</line>${c.octaveChange ? `<clef-octave-change>${c.octaveChange}</clef-octave-change>` : ""}</clef>`;
+  const initialClefs = [1, 2]
+    .map((staff) =>
+      clefXml(
+        clefs.find((c) => c.beat === 0 && c.staff === staff) || {
+          staff,
+          sign: staff === 1 ? "G" : "F",
+          line: staff === 1 ? 2 : 4,
+        },
+      ),
+    )
+    .join("");
   let xml = `<?xml version="1.0" encoding="utf-8"?><score-partwise version="4.0"><work><work-title>${escape(options.title)}</work-title></work><identification><creator type="composer">${escape(options.composer)}</creator>${options.rights ? `<rights>${escape(options.rights)}</rights>` : ""}<encoding><software>modScore</software></encoding>${options.notice ? `<miscellaneous><miscellaneous-field name="modscore-recognition-review">${escape(options.notice)}</miscellaneous-field></miscellaneous>` : ""}</identification><part-list><score-part id="Piano"><part-name>Piano</part-name><score-instrument id="Piano-I"><instrument-name>Piano</instrument-name></score-instrument><midi-instrument id="Piano-I"><midi-channel>1</midi-channel><midi-program>1</midi-program></midi-instrument></score-part></part-list><part id="Piano">`;
   for (let bar = 0; bar < bars; bar++) {
-    const from = bar * 4,
-      to = from + 4;
-    xml += `<measure number="${bar + 1}">${bar > 0 && bar % 4 === 0 ? '<print new-system="yes"/>' : ""}${bar === 0 ? `<attributes><divisions>${divisions}</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes><direction><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type><sound tempo="${bpm}"/></direction>` : ""}`;
+    const from = starts[bar],
+      to = starts[bar + 1];
+    xml += `<measure number="${bar + 1}"${lengths[bar] < barBeats ? ' implicit="yes"' : ""}>${bar > 0 && bar % 4 === 0 ? '<print new-system="yes"/>' : ""}${bar === 0 ? `<attributes><divisions>${divisions}</divisions><key><fifths>${key.fifths}</fifths><mode>${key.mode}</mode></key><time><beats>${meter.beats}</beats><beat-type>${meter.beatType}</beat-type></time><staves>2</staves>${initialClefs}</attributes><direction><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type><sound tempo="${bpm}"/></direction>` : ""}`;
+    if (bar > 0 && clefs.some((c) => c.beat === from))
+      xml += `<attributes>${clefs
+        .filter((c) => c.beat === from)
+        .map(clefXml)
+        .join("")}</attributes>`;
+    if (options.chordSuggestions) {
+      const group = notes.filter((n) => n.beat >= from && n.beat < to);
+      const chord = suggestChord(group);
+      if (chord) {
+        const root = spellPitch(chord.root + 60, key.fifths);
+        xml += `<harmony><root><root-step>${root.step}</root-step>${root.alter ? `<root-alter>${root.alter}</root-alter>` : ""}</root><kind>${chord.kind}</kind><staff>1</staff></harmony>`;
+      }
+    }
     let lane = 0;
     for (let h = 0; h < 2; h++) {
       const active = hands[h]
@@ -130,13 +212,30 @@ export function pianoScore(
         ? active
         : [{ groups: [], v: 0 }]) {
         if (lane++)
-          xml += `<backup><duration>${4 * divisions}</duration></backup>`;
+          xml += `<backup><duration>${lengths[bar] * divisions}</duration></backup>`;
         const voice = h === 0 ? v + 1 : v + 101,
           staff = h + 1;
         const emit = (start: number, end: number, group?: Chord) => {
           let at = start;
           while (at < end - 1e-7) {
-            const shape = values.find((value) => value[0] <= end - at + 1e-7);
+            if (v === 0) {
+              const changes = clefs.filter(
+                (c) =>
+                  c.staff === staff &&
+                  c.beat > from &&
+                  c.beat < to &&
+                  Math.abs(c.beat - at) < 1e-7,
+              );
+              if (changes.length)
+                xml += `<attributes>${changes.map(clefXml).join("")}</attributes>`;
+            }
+            const nextChange =
+              clefs.find(
+                (c) => c.staff === staff && c.beat > at + 1e-7 && c.beat < end,
+              )?.beat ?? end;
+            const shape = values.find(
+              (value) => value[0] <= nextChange - at + 1e-7,
+            );
             if (!shape) throw Error("Invalid notation grid");
             const [duration, type, dotted] = shape;
             const unique = group
@@ -151,7 +250,7 @@ export function pianoScore(
             unique.forEach((note, index) => {
               const stop = !!note && note.beat < at - 1e-7,
                 start = !!note && note.end > at + duration + 1e-7;
-              xml += `<note${!note && v > 0 ? ' print-object="no"' : ""}${note ? ` dynamics="${Math.round(Math.max(0, Math.min(1, note.velocity ?? 0.75)) * 100)}"` : ""}>${index ? "<chord/>" : ""}${note ? pitch(note.pitch) : "<rest/>"}<duration>${Math.round(duration * divisions)}</duration>${stop ? '<tie type="stop"/>' : ""}${start ? '<tie type="start"/>' : ""}<voice>${voice}</voice><type>${type}</type>${dotted ? "<dot/>" : ""}${hands[h].length > 1 && note ? `<stem>${v % 2 ? "down" : "up"}</stem>` : ""}<staff>${staff}</staff>${stop || start ? `<notations>${stop ? '<tied type="stop"/>' : ""}${start ? '<tied type="start"/>' : ""}</notations>` : ""}</note>`;
+              xml += `<note${!note && v > 0 ? ' print-object="no"' : ""}${note ? ` dynamics="${Math.round(Math.max(0, Math.min(1, note.velocity ?? 0.75)) * 100)}"` : ""}>${index ? "<chord/>" : ""}${note ? pitch(note.pitch) : "<rest/>"}<duration>${Math.round(duration * divisions)}</duration>${stop ? '<tie type="stop"/>' : ""}${start ? '<tie type="start"/>' : ""}<voice>${voice}</voice><type>${type}</type>${dotted ? "<dot/>" : ""}${hands[h].length > 1 && note ? `<stem>${v % 2 ? "down" : "up"}</stem>` : ""}<staff>${staff}</staff>${stop || start || note?.articulation ? `<notations>${stop ? '<tied type="stop"/>' : ""}${start ? '<tied type="start"/>' : ""}${note?.articulation && !stop ? `<articulations><${note.articulation}/></articulations>` : ""}</notations>` : ""}</note>`;
             });
             at += duration;
           }
@@ -188,6 +287,10 @@ export function audioNotesToScore(
     bars: number;
     composer?: string;
     trimStart?: boolean;
+    key?: KeySignature;
+    meter?: { beats: number; beatType: number };
+    grid?: number;
+    chordSuggestions?: boolean;
   },
 ) {
   const sorted = notes
@@ -196,7 +299,7 @@ export function audioNotesToScore(
         Number.isFinite(n.startTimeSeconds) &&
         Number.isFinite(n.durationSeconds) &&
         Number.isFinite(n.amplitude) &&
-        n.durationSeconds > 0.05 &&
+        n.durationSeconds > 0 &&
         Number.isInteger(n.pitchMidi) &&
         n.pitchMidi >= 21 &&
         n.pitchMidi <= 108,
@@ -208,18 +311,28 @@ export function audioNotesToScore(
     );
   const offset =
     options.trimStart === false ? 0 : Math.max(0, sorted[0].startTimeSeconds);
-  const events = sorted.map((n) => {
+  const grid = options.grid ?? 0.25;
+  if (![0.125, 0.25, 0.5].includes(grid))
+    throw Error("Choose an eighth, sixteenth or 32nd-note grid");
+  const performance = sorted.map((n) => ({
+    pitch: n.pitchMidi,
+    beat: Math.max(0, ((n.startTimeSeconds - offset) * options.bpm) / 60),
+    duration: (n.durationSeconds * options.bpm) / 60,
+    velocity: Math.max(0.1, Math.min(1, n.amplitude)),
+  }));
+  const quantized = sorted.map((n) => {
     const beat = Math.max(
       0,
-      Math.round((((n.startTimeSeconds - offset) * options.bpm) / 60) * 8) / 8,
+      Math.round(((n.startTimeSeconds - offset) * options.bpm) / 60 / grid) *
+        grid,
     );
     const end = Math.max(
-      beat + 0.125,
+      beat + grid,
       Math.round(
         (((n.startTimeSeconds + n.durationSeconds - offset) * options.bpm) /
           60) *
-          8,
-      ) / 8,
+          (1 / grid),
+      ) * grid,
     );
     return {
       pitch: n.pitchMidi,
@@ -228,9 +341,25 @@ export function audioNotesToScore(
       velocity: Math.max(0.25, Math.min(1, n.amplitude)),
     };
   });
+  // Attacks that collapse onto one notation-grid position cannot be engraved
+  // as separate identical piano strikes. Preserve both in performance MIDI.
+  const positions = new Map<string, PianoEvent>();
+  for (const note of quantized) {
+    const id = `${note.pitch}:${note.beat}`,
+      before = positions.get(id);
+    if (before) {
+      before.duration = Math.max(before.duration, note.duration);
+      before.velocity = Math.max(before.velocity ?? 0, note.velocity);
+    } else positions.set(id, note);
+  }
+  const events = [...positions.values()];
+  const key = options.key || estimateKey(performance);
   return {
+    key,
+    performance,
     xml: pianoScore(events, {
       ...options,
+      key,
       composer: options.composer || "Audio transcription",
       notice:
         "Automatic audio transcription: estimated pitches, rhythm, tempo and hand assignment. Compare with the source recording before relying on the notation.",

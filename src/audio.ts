@@ -216,7 +216,7 @@ export class AudioEngine {
         const key = `note:${cycle}:${n.id}`,
           pitch = n.pitch + this.transpose;
         if (
-          n.beat + n.duration <= from ||
+          n.beat + (n.soundDuration ?? n.duration) <= from ||
           !this.audible(n) ||
           pitch < 0 ||
           pitch > 127 ||
@@ -225,7 +225,10 @@ export class AudioEngine {
           continue;
         const when = clock.when(Math.max(n.beat, from), cycle);
         if (when > horizon) break;
-        const until = clock.when(Math.min(n.beat + n.duration, end), cycle);
+        const until = clock.when(
+          Math.min(n.beat + (n.soundDuration ?? n.duration), end),
+          cycle,
+        );
         if (until > now)
           this.note(
             pitch,
@@ -330,8 +333,11 @@ export class AudioEngine {
       if (p < 0 || p > 127 || !this.audible(n)) continue;
       const start = beatToSeconds(n.beat, this.timeline.tempos, this.speed);
       const dur =
-        beatToSeconds(n.beat + n.duration, this.timeline.tempos, this.speed) -
-        start;
+        beatToSeconds(
+          n.beat + (n.soundDuration ?? n.duration),
+          this.timeline.tempos,
+          this.speed,
+        ) - start;
       scheduleVoice(
         c,
         g,

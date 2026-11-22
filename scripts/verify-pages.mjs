@@ -1,3 +1,4 @@
+import { parseMidi } from "midi-file";
 // Exercise the actual production build under a project subpath, without COOP/COEP.
 // Use a separate verification origin. Never serve an HTML fallback for missing assets.
 import { createServer } from "node:http";
@@ -49,7 +50,9 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch(
   process.env.MODSCORE_BROWSER === "chromium" ? {} : { channel: "chrome" },
 );
-const context = await browser.newContext();
+const context = await browser.newContext({
+  viewport: { width: 1440, height: 1060 },
+});
 const page = await context.newPage();
 const errors = [],
   failures = [];
@@ -77,7 +80,17 @@ try {
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(false);
   await expect(page.locator("h1")).toHaveText("Basic Music");
   await expect(page.locator("#notation svg").first()).toBeVisible();
-  await expect(page.locator("[data-measure]")).toHaveCount(32);
+  await expect(page.locator("[data-measure]")).toHaveCount(70);
+  await expect(page.locator("#demo-banner")).toContainText("three flats");
+  await expect(page.locator("#follow")).not.toBeChecked();
+  const response = await fetch(origin + base + "demos/basic-music.mid");
+  const midi = parseMidi(new Uint8Array(await response.arrayBuffer()));
+  expect(midi.tracks.flat().filter((e) => e.type === "noteOn")).toHaveLength(
+    1314,
+  );
+  expect(
+    midi.tracks.flat().find((e) => e.type === "keySignature"),
+  ).toMatchObject({ key: -3, scale: 1 });
   await page.screenshot({
     path: "docs/validation/demo-desktop.png",
     fullPage: false,
@@ -160,6 +173,7 @@ try {
     });
     await page.locator("#audio-title").fill(title);
     await page.locator("#audio-bars").selectOption("8");
+    await page.locator("#audio-auto-tempo").uncheck();
     await page.locator("#audio-bpm").fill("60");
     await page
       .getByRole("button", { name: "Create piano score", exact: true })
@@ -219,7 +233,9 @@ try {
         pdfPageSelection: true,
         savedDraftReload: true,
         offlineReloadAndPlayback: true,
-        demos32Bars: true,
+        referenceDemo35Bars: true,
+        beethoven32Bars: true,
+        signedMidiKey: true,
         audioTranscription: true,
         offlineAudioTranscription: true,
         independentMetronomeVolume: true,

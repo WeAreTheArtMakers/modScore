@@ -1,3 +1,4 @@
+import { estimateAudioTempo, type AudioProfile } from "./audio-analysis";
 import { assetPath } from "./paths";
 export async function transcribeAudio(
   file: Blob,
@@ -5,6 +6,9 @@ export async function transcribeAudio(
     seconds: number;
     signal?: AbortSignal;
     progress?: (value: number) => void;
+    start?: number;
+    profile?: AudioProfile;
+    onTempo?: (bpm: number) => void;
   },
 ) {
   if (file.size > 40 * 1024 * 1024)
@@ -22,7 +26,10 @@ export async function transcribeAudio(
   try {
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
     check();
-    const seconds = Math.min(options.seconds, buffer.duration);
+    const start = options.start ?? 0;
+    if (!Number.isFinite(start) || start < 0 || start >= buffer.duration)
+      throw Error("Choose a start time within the recording.");
+    const seconds = Math.min(options.seconds, buffer.duration - start);
     const offline = new OfflineAudioContext(
       1,
       Math.max(1, Math.ceil(seconds * 22050)),
@@ -31,12 +38,13 @@ export async function transcribeAudio(
     const source = offline.createBufferSource();
     source.buffer = buffer;
     source.connect(offline.destination);
-    source.start(0);
+    source.start(0, start);
     samples = (await offline.startRendering()).getChannelData(0).slice();
   } finally {
     await context.close();
   }
   check();
+  options.onTempo?.(estimateAudioTempo(samples));
   const worker = new Worker(new URL("./audio-worker.ts", import.meta.url), {
     type: "module",
   });
@@ -75,6 +83,7 @@ export async function transcribeAudio(
     worker.postMessage(
       {
         samples: samples.buffer,
+        profile: options.profile || "piano",
         runtimeUrl: new URL(
           assetPath("recognition/lib/onnxruntime-web@1.30.0/dist/"),
           location.origin,

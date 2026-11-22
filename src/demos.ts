@@ -4,11 +4,11 @@ export const DEMO_SEEN = "modscore-welcome-v1";
 export const demos = [
   {
     key: "basic",
-    id: "modscore-demo-basic-v1",
+    id: "modscore-demo-basic-v2",
     title: "Basic Music",
     composer: "Baran Gulesen",
-    subtitle: "32 bars · 112 BPM · automatic transcription",
-    path: "demos/basic-music-32.musicxml",
+    subtitle: "35 bars · C minor · 3 flats · 110 BPM · repeat",
+    path: "demos/basic-music.musicxml",
     reviewed: false,
     source: "https://www.youtube.com/watch?v=AN0wGBUxkIk",
   },
