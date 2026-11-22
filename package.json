@@ -1,6 +1,6 @@
 {
   "name": "modscore",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
@@ -14,7 +14,8 @@
     "test:webkit": "playwright test --project=webkit",
     "assets:pdf": "node scripts/fetch-pdf.mjs",
     "setup": "node scripts/setup.mjs",
-    "build:pages": "node scripts/build-pages.mjs"
+    "build:pages": "node scripts/build-pages.mjs",
+    "youtube:helper": "node scripts/youtube-helper.mjs"
   },
   "dependencies": {
     "@tonejs/midi": "2.0.28"

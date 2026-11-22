@@ -49,7 +49,7 @@ modScore converts the acoustic grand piano MP3 bank to a data-only JSON object. 
 
 ## Test notation, interface and assets
 
-`public/fixtures/grand-staff.musicxml` is an original four-measure recognition study dedicated to CC0 1.0 Universal by modScore contributors. The printed test input in `docs/validation/input.png` derives from it. Recognized MusicXML is actual model output. Icons and CSS are original code-native drawings; no photo or commercial UI asset pack is bundled. No copyrighted repertoire is used as an app demonstration.
+`public/fixtures/grand-staff.musicxml` is an original four-measure recognition study dedicated to CC0 1.0 Universal by modScore contributors. The printed test input in `docs/validation/input.png` derives from it. Recognized MusicXML is actual model output. Icons and CSS are original code-native drawings; no photo or commercial UI asset pack is bundled. The composer-authorized Basic Music demo and public-domain Beethoven arrangement have separate musical rights in `public/demos/LICENSE.md`; software licensing does not relicense the composition.
 
 ## PDF legacy distribution (0.2.1)
 
@@ -58,3 +58,11 @@ PDF.js remains version 6.4.299 (Mozilla, Apache-2.0); the application now select
 ## fflate (setup tool only)
 
 fflate 0.8.3 by Arjun Barrett, MIT. Used by the Node.js first-run setup script to extract verified model downloads; it is not bundled into the browser application. [Upstream](https://github.com/101arrowz/fflate), license: `docs/licenses/fflate-MIT.txt`.
+
+## Spotify Basic Pitch (0.5)
+
+Spotify AB and contributors, Apache-2.0. Audio note inference uses the 230,444-byte `nmp.onnx` model from [basic-pitch](https://github.com/spotify/basic-pitch), revision `fa5997af0a8210982619003269994a1be25eddf3`. Note extraction derives from [basic-pitch-ts](https://github.com/spotify/basic-pitch-ts), npm `@spotify/basic-pitch@1.0.1`, revision `16d4c6a68e2c070726ba7c26a64c13eab4a434c4`. Exact sizes/hashes and npm integrity are in `docs/AUDIO.lock.json`.
+
+`vendor/basic-pitch/toMidi.js` is modified: the Node MIDI-writing import/function and source-map reference are removed; note creation is retained. Original TypeScript source and both upstream licenses are bundled alongside it. The Apache-2.0 text is also distributed at `/licenses/basic-pitch-Apache-2.0.txt`. The shared ONNX runtime performs CPU inference locally; TensorFlow.js is not bundled.
+
+The optional local YouTube helper invokes user-installed yt-dlp or uvx; yt-dlp is not redistributed in the static application. It uses no private credentials or paid service. See `docs/AUDIO_YOUTUBE.md`.

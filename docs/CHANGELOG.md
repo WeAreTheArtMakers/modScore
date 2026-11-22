@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5 — demos, local audio transcription and practice
+
+- Composer-authorized Basic Music first-run demo and an original 32-bar Ode to Joy piano study, with explicit music rights and MIDI/MusicXML assets.
+- Guided score/piano/roll tour with reduced-motion support; existing libraries and demo edits preserved.
+- Free local Basic Pitch audio transcription and optional loopback-only YouTube downloader; no cloud or paid API.
+- Continuous loop-clock scheduling, two-click measure-range selection and cancellation of stale Play requests.
+- Meter-aware accented metronome, independent volume and pulse indicator.
+- Compact keyboard map and octave controls; original recording playback and source metadata in saved audio projects.
+
 ## 0.4 — piano layout, image verification and rhythm corrections
 
 - Preserve grand staffs with lower treble/C clefs.

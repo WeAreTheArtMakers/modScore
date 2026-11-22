@@ -5,9 +5,17 @@
 
 modScore, basılı notaları tarayıcınızda tanıyıp seslendirmenizi ve 88 tuşlu piyano üzerinde takip etmenizi sağlar. Hesap, ücretli servis, reklam veya nota yüklemesi gerekmez. Nota dosyaları cihazınızda işlenir ve tarayıcınızın yerel kitaplığında saklanır.
 
-**Geliştirme sürümü 0.4.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
+**Geliştirme sürümü 0.5.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
 
 ![modScore ve projeyle gelen özgün CC0 çalışma notası](docs/preview.png)
+
+## 0.5: demo, sesten MIDI ve çalışma kontrolleri
+
+İlk açılışta bestecisinin izniyle **Basic Music — Baran Gulesen** açılır: gerçek kayıttan çıkarılan 32 ölçülük otomatik transkripsiyondur; notalar kontrol edilmelidir. **Start guided demo**, nota–piyano takibini, 1–4 ölçü döngüsünü, metronomu ve klavye kontrollerini gösterir. Beethoven’ın **Ode to Joy** temasından ikinci bir 32 ölçülük piyano etüdü de vardır. Ses kendiliğinden başlamaz, mevcut arşiv korunur.
+
+**Audio & YouTube**, ses dosyasını Spotify Basic Pitch ile bilgisayarınızda analiz edip düzenlenebilir nota ve MIDI oluşturur. Dosyalar doğrudan tarayıcıda çalışır; YouTube bağlantıları için ücretsiz `npm run youtube:helper` yerel yardımcısı gerekir. Ücretli API yoktur. [Kurulum, kullanım ve sınırlar](docs/AUDIO_YOUTUBE.md). Demo müziklerinin hakları [ayrı belirtilmiştir](public/demos/LICENSE.md).
+
+Döngü geçişleri sürekli ses saatini kullanır. İlk/son ölçüye tıklayarak aralık seçebilirsiniz. Metronom ölçü işaretini izler ve bağımsız küçük ses kontrolü sunar. Sanal piyanoda oktav, Z/X ve genişletilebilir tuş haritası tek yerde toplanmıştır.
 
 ## 0.4 ile iyileşenler
 

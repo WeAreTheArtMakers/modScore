@@ -1,3 +1,6 @@
+import { demos, demoProject, DEMO_SEEN } from "./demos";
+import { youtubeId } from "./youtube";
+import { metronomePulses } from "./transport-clock";
 import { sourceLocation } from "./recognition-review";
 import { assetPath } from "./paths";
 import { LiveInput } from "./live-input";
@@ -66,6 +69,26 @@ let urls: string[] = [],
   lastMeasure = -1,
   updateCleanup: (() => void) | undefined;
 let importAbort: AbortController | undefined;
+let loopStart = 1,
+  loopEnd = 4,
+  loopPicking = false,
+  loopPickAnchor: number | undefined;
+let guideActive = false,
+  guideStep = 0,
+  guideSeconds = 0,
+  guideLastFrame = 0;
+let audioFile: File | undefined,
+  audioSourceUrl = "",
+  audioTitle = "",
+  audioBpm = 112,
+  audioBars = 32,
+  audioAbort: AbortController | undefined;
+const storedMetronome = Number(
+  localStorage.getItem("modscore-metronome-volume") ?? 0.35,
+);
+audio.setMetronomeVolume(
+  Number.isFinite(storedMetronome) ? storedMetronome : 0.35,
+);
 let theme = localStorage.getItem("modscore-theme") || "dark";
 document.documentElement.dataset.theme = theme;
 document.documentElement.lang = language;
@@ -81,7 +104,7 @@ const live = new LiveInput(audio, () => view === "piano" || view === "player");
 const hardwareTr = () => language === "tr";
 function hardwarePanel() {
   const tr = hardwareTr();
-  return `<section class="panel"><h2>${tr ? "Klavye, MIDI ve ses çıkışı" : "Keyboard, MIDI & audio output"}</h2><label class="check-label"><input id="typing-enable" type="checkbox" ${live.enabled ? "checked" : ""}>${tr ? "Bilgisayar klavyesiyle çal" : "Play with computer keyboard"}</label><p>A W S E D F T G Y H U J K · Z / X: ${tr ? "oktav" : "octave"}</p><div class="row">${button("Connect MIDI", "connect-midi")}${button("Audio outputs", "audio-outputs")}${button("Test audio", "test-audio")}${button("All notes off", "panic")}</div><label>MIDI giriş<select id="midi-input"><option value="">${tr ? "Bağlı giriş yok" : "No input selected"}</option></select></label><label>${tr ? "Ses çıkışı" : "Audio output"}<select id="audio-output"><option value="">${tr ? "Sistem varsayılanı" : "System default"}</option></select></label><p id="hardware-status" role="status"></p><p class="fine">${tr ? "MIDI için tarayıcı izni gerekir. Ses kartı listede yoksa işletim sisteminin ses çıkışından seçin. MIDI ve ses kartı aynı bağlantı türü değildir." : "MIDI requires browser permission. If your audio interface is not listed, select it in system sound settings. MIDI input and audio output are separate connections."}</p></section>`;
+  return `<section class="panel"><h2>${tr ? "Klavye, MIDI ve ses çıkışı" : "Keyboard, MIDI & audio output"}</h2><label class="check-label"><input id="typing-enable" type="checkbox" ${live.enabled ? "checked" : ""}>${tr ? "Bilgisayar klavyesiyle çal" : "Play with computer keyboard"}</label><p class="fine">${tr ? "Nota ve oktav tuşları Sanal piyano bölümündeki tek klavye panelinde gösterilir." : "Note keys and octave controls are grouped in the Virtual piano keyboard panel."}</p><div class="row">${button("Connect MIDI", "connect-midi")}${button("Audio outputs", "audio-outputs")}${button("Test audio", "test-audio")}${button("All notes off", "panic")}</div><label>MIDI giriş<select id="midi-input"><option value="">${tr ? "Bağlı giriş yok" : "No input selected"}</option></select></label><label>${tr ? "Ses çıkışı" : "Audio output"}<select id="audio-output"><option value="">${tr ? "Sistem varsayılanı" : "System default"}</option></select></label><p id="hardware-status" role="status"></p><p class="fine">${tr ? "MIDI için tarayıcı izni gerekir. Ses kartı listede yoksa işletim sisteminin ses çıkışından seçin. MIDI ve ses kartı aynı bağlantı türü değildir." : "MIDI requires browser permission. If your audio interface is not listed, select it in system sound settings. MIDI input and audio output are separate connections."}</p></section>`;
 }
 function refreshHardware() {
   const status = document.querySelector("#hardware-status");
@@ -102,8 +125,20 @@ function refreshHardware() {
     select.value = live.selected;
   }
   const hint = document.querySelector("#live-status");
-  if (hint)
-    hint.textContent = `A W S E D F T G Y H U J K · Z/X octave ${live.octave} · ${live.status}`;
+  if (hint) hint.textContent = live.status;
+  const octave = document.querySelector("#keyboard-octave");
+  if (octave) octave.textContent = String(live.octave);
+  document.querySelectorAll<HTMLElement>("[data-code]").forEach((node) => {
+    node.classList.toggle(
+      "is-down",
+      live.active.has("key:" + node.dataset.code),
+    );
+    const text = node.querySelector("small");
+    if (text)
+      text.textContent = noteName(
+        (live.octave + 1) * 12 + Number(node.dataset.offset),
+      );
+  });
 }
 live.onchange = () => {
   piano?.setLive(live.pitches());
@@ -171,8 +206,223 @@ function rows(scores: Project[]) {
         .join("")
     : `<div class="empty"><span>${icon("library")}</span><h3>${label("No scores yet")}</h3><p>${label("Scan or import your first score to begin.")}</p></div>`;
 }
+function keyboardHelp() {
+  const whites = [
+    ["A", "KeyA", 0, 1],
+    ["S", "KeyS", 2, 3],
+    ["D", "KeyD", 4, 5],
+    ["F", "KeyF", 5, 6],
+    ["G", "KeyG", 7, 8],
+    ["H", "KeyH", 9, 10],
+    ["J", "KeyJ", 11, 12],
+    ["K", "KeyK", 12, 13],
+    ["L", "KeyL", 14, 15],
+    [";", "Semicolon", 16, 17],
+  ] as const;
+  const blacks = [
+    ["W", "KeyW", 1, 2],
+    ["E", "KeyE", 3, 4],
+    ["T", "KeyT", 6, 7],
+    ["Y", "KeyY", 8, 9],
+    ["U", "KeyU", 10, 11],
+    ["O", "KeyO", 13, 14],
+    ["P", "KeyP", 15, 16],
+  ] as const;
+  return `<details class="typing-help" id="typing-help"><summary>${language === "tr" ? "Bilgisayar klavyesi" : "Computer keyboard"} <span><kbd>Z</kbd> / <kbd>X</kbd> ${language === "tr" ? "oktav" : "octave"}</span></summary><div class="typing-map" aria-label="Piano keyboard mapping">${[...whites, ...blacks].map(([key, code, offset, col]) => `<div class="typing-key ${blacks.some((k) => k[1] === code) ? "black" : "white"}" style="grid-column:${col}" data-code="${code}" data-offset="${offset}"><kbd>${key}</kbd><small>${noteName((live.octave + 1) * 12 + offset)}</small></div>`).join("")}</div><p class="fine">${language === "tr" ? "Tuşu bırakınca nota susar. Yazı alanlarında piyano tuşları devre dışıdır." : "Release a key to stop the note. Typing in text fields does not play notes."}</p></details>`;
+}
+function keyboardControls() {
+  return `<section class="keyboard-controls"><div class="live-toolbar">${button("Enable audio", "enable-live")}${button("Connect MIDI", "connect-midi")}${button("All notes off", "panic")}<div class="octave-control"><button data-action="octave-down" aria-label="Lower octave">−</button><span>${language === "tr" ? "Oktav" : "Octave"} <output id="keyboard-octave">${live.octave}</output></span><button data-action="octave-up" aria-label="Higher octave">+</button></div><span id="live-status" role="status"></span></div>${keyboardHelp()}</section>`;
+}
+function demoCards() {
+  return `<section class="demo-library"><div class="section-heading"><h2>${language === "tr" ? "Demolarla keşfet" : "Explore the demos"}</h2><span class="muted">32 ${language === "tr" ? "ölçü" : "measures"}</span></div><div class="demo-cards">${demos.map((d) => `<button data-demo="${d.key}" class="demo-card"><span class="demo-icon">${icon("music")}</span><span><strong>${e(d.title)}</strong><small>${e(d.composer)}</small><small>${e(d.subtitle)}</small></span>${icon("play")}</button>`).join("")}</div></section>`;
+}
+function demoBanner() {
+  const demo = demos.find((d) => d.id === project?.id);
+  if (!demo) return "";
+  return `<section class="demo-banner" id="demo-banner" data-playing="${audio.playing}"><div class="demo-intro"><div class="demo-bars" aria-hidden="true">${[0, 1, 2, 3, 4].map((i) => `<i style="--i:${i}"></i>`).join("")}</div><div><p class="eyebrow">${language === "tr" ? "ETKİLEŞİMLİ DEMO" : "INTERACTIVE DEMO"} · 32 ${language === "tr" ? "ÖLÇÜ" : "MEASURES"}</p><strong>${e(demo.composer)}</strong><p class="fine">${demo.key === "basic" ? (language === "tr" ? "Bestecinin izniyle · otomatik transkripsiyon; notaları kontrol edin." : "With the composer’s permission · automatic transcription; review the notes.") : language === "tr" ? "Beethoven’ın temasından 32 ölçülük piyano düzenlemesi." : "A 32-bar piano arrangement of Beethoven’s theme."} <a href="${demo.source}" target="_blank" rel="noopener">${language === "tr" ? "Kaynak" : "Source"}</a></p></div></div><div class="demo-actions">${button(guideActive ? "Stop tour" : "Start guided demo", guideActive ? "demo-stop" : "demo-start", "primary")}${button(demo.key === "basic" ? "Try Beethoven" : "Try Basic Music", demo.key === "basic" ? "demo-beethoven" : "demo-basic", "text-button")}</div><div class="demo-features">${[
+    ["demo-follow", "Score & piano"],
+    ["demo-loop", "Loop 1–4"],
+    ["demo-metronome", "Metronome"],
+    ["demo-keyboard", "Keyboard"],
+  ]
+    .map(
+      ([action, title], i) =>
+        `<button data-action="${action}" data-guide-step="${i}" aria-pressed="${guideActive && guideStep === i}">${label(title)}</button>`,
+    )
+    .join(
+      "",
+    )}</div><p class="demo-caption" id="demo-caption" aria-live="polite">${language === "tr" ? "Başlatın; nota, piyano, döngü ve metronomu birlikte deneyin." : "Start the tour to see the score, piano, loops and metronome work together."}</p></section>`;
+}
+function audioView() {
+  return `<div class="page-heading"><div><p class="eyebrow">AUDIO TO PIANO / LOCAL AI</p><h1>${language === "tr" ? "Sesten piyano notalarına" : "Turn audio into piano"}</h1><p class="lede">${language === "tr" ? "Bir kayıt veya YouTube bağlantısından düzenlenebilir nota, MIDI ve piyano takibi oluşturun." : "Create editable notation, MIDI and piano playback from a recording or YouTube link."}</p></div></div><div class="audio-flow"><section class="panel audio-source"><h2>${language === "tr" ? "Müziği seç" : "Choose your music"}</h2><label class="audio-file-label">${language === "tr" ? "Ses dosyası" : "Audio file"}<input id="audio-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac"></label><p id="audio-file-name" class="fine">MP3, WAV, M4A, OGG, WebM · max. 40 MB</p><div class="audio-divider">${language === "tr" ? "veya" : "or"}</div><label>YouTube<input id="youtube-url" type="url" placeholder="https://www.youtube.com/watch?v=…" value="${e(audioSourceUrl)}"></label><p class="fine">${language === "tr" ? "YouTube için bilgisayarınızdaki ücretsiz yerel yardımcı kullanılır. Ses dosyaları doğrudan tarayıcıda işlenir." : "YouTube uses the free helper running on your computer. Audio files are processed directly in your browser."}</p><details><summary>${language === "tr" ? "YouTube yardımcısını bağla" : "Connect the YouTube helper"}</summary><p>${language === "tr" ? "Proje klasöründe terminal açıp aşağıdaki komutu çalıştırın; terminal açık kalsın." : "In a terminal inside the project folder, run this command and keep it open."}</p><pre><code>npm run youtube:helper</code></pre><p class="fine">${language === "tr" ? "yt-dlp veya uv kurulu olmalı. Tarayıcı sorarsa yerel ağ iznini verin." : "Install yt-dlp or uv first. If prompted by your browser, allow the local network connection."} <a href="https://github.com/WeAreTheArtMakers/modScore/blob/main/docs/AUDIO_YOUTUBE.md" target="_blank" rel="noopener">${language === "tr" ? "Kurulum kılavuzu" : "Setup guide"}</a></p></details></section><section class="panel audio-options"><h2>${language === "tr" ? "Piyano partisyonu" : "Piano score"}</h2><label>${language === "tr" ? "Başlık" : "Title"}<input id="audio-title" value="${e(audioTitle)}"></label><div class="audio-fields"><label>BPM<input id="audio-bpm" type="number" min="40" max="240" value="${audioBpm}"></label><label>${language === "tr" ? "Ölçü" : "Measures"}<select id="audio-bars">${[8, 16, 32, 64].map((n) => `<option ${audioBars === n ? "selected" : ""}>${n}</option>`).join("")}</select></label></div><p class="fine">${language === "tr" ? "BPM ve 4/4 ölçü, notanın yazım ızgarasını belirler. Model bunları kesin olarak saptamaz. En iyi sonuç tek enstrümanlı, temiz kayıtlardadır." : "BPM and 4/4 define the notation grid; the model does not establish them with certainty. Clean, single-instrument recordings work best."}</p>${button("Create piano score", "transcribe-audio", "primary wide")}${button("Try Basic Music", "demo-basic", "text-button")}<div id="audio-progress" role="status" aria-live="polite"></div><button data-action="cancel-audio" id="cancel-audio" hidden>${label("Cancel")}</button><p class="fine">${language === "tr" ? "Model: Spotify Basic Pitch · otomatik tahmin; perde, ritim ve akorları kayıtla karşılaştırın." : "Model: Spotify Basic Pitch · automatic estimates; compare pitches, rhythm and chords with the recording."}</p></section></div>`;
+}
+function syncPracticeUI() {
+  const first = document.querySelector<HTMLInputElement>("#loop-start"),
+    last = document.querySelector<HTMLInputElement>("#loop-end"),
+    toggle = document.querySelector<HTMLInputElement>("#loop-on");
+  if (first && document.activeElement !== first)
+    first.value = String(loopStart);
+  if (last && document.activeElement !== last) last.value = String(loopEnd);
+  if (toggle) toggle.checked = !!audio.loop;
+  const count = document.querySelector("#loop-status");
+  if (count)
+    count.textContent = `${language === "tr" ? "Ölçü" : "Measures"} ${loopStart}–${loopEnd} · ${loopEnd - loopStart + 1} ${language === "tr" ? "ölçü" : "bars"}`;
+  const metro = document.querySelector<HTMLInputElement>("#metronome");
+  if (metro) metro.checked = audio.metronome;
+  const volume = document.querySelector<HTMLOutputElement>("#metronome-level");
+  if (volume) volume.value = `${Math.round(audio.metronomeVolume * 100)}%`;
+  document
+    .querySelectorAll<HTMLElement>("[data-measure]")
+    .forEach((n) =>
+      n.classList.toggle(
+        "in-loop",
+        !!audio.loop &&
+          Number(n.dataset.measure) >= loopStart - 1 &&
+          Number(n.dataset.measure) < loopEnd,
+      ),
+    );
+  const pick = document.querySelector<HTMLElement>('[data-action="pick-loop"]');
+  pick?.setAttribute("aria-pressed", String(loopPicking));
+}
+function applyLoop(enabled: boolean) {
+  if (!timeline) return;
+  audio.setLoop(
+    enabled
+      ? [
+          timeline.measures[loopStart - 1].beat,
+          timeline.measures[loopEnd - 1].beat +
+            timeline.measures[loopEnd - 1].duration,
+        ]
+      : undefined,
+  );
+  syncPracticeUI();
+}
+async function transcribeSource() {
+  if (busy) throw Error("Finish or cancel the current operation first.");
+  const url = (
+    document.querySelector("#youtube-url") as HTMLInputElement
+  ).value.trim();
+  const title = (
+    document.querySelector("#audio-title") as HTMLInputElement
+  ).value.trim();
+  const bpm = Number(
+      (document.querySelector("#audio-bpm") as HTMLInputElement).value,
+    ),
+    bars = Number(
+      (document.querySelector("#audio-bars") as HTMLSelectElement).value,
+    );
+  if (!(bpm >= 40 && bpm <= 240) || ![8, 16, 32, 64].includes(bars))
+    throw Error("Choose a valid tempo and score length.");
+  if (!audioFile && !url)
+    throw Error("Choose an audio file or enter a YouTube link.");
+  if (url) youtubeId(url);
+  audioSourceUrl = url;
+  audioTitle = title;
+  audioBpm = bpm;
+  audioBars = bars;
+  audio.stop();
+  busy = true;
+  audioAbort = new AbortController();
+  const signal = audioAbort.signal;
+  const status = (text: string) => {
+    const node = document.querySelector("#audio-progress");
+    if (node) node.textContent = text;
+  };
+  const cancel = document.querySelector<HTMLButtonElement>("#cancel-audio");
+  if (cancel) cancel.hidden = false;
+  const submit = document.querySelector<HTMLButtonElement>(
+    '[data-action="transcribe-audio"]',
+  );
+  if (submit) submit.disabled = true;
+  try {
+    let file = audioFile,
+      reference = url;
+    if (url && !file) {
+      status(
+        language === "tr"
+          ? "Yerel YouTube yardımcısı hazırlanıyor…"
+          : "Preparing the video with your local YouTube helper…",
+      );
+      let response: Response;
+      try {
+        response = await fetch("http://127.0.0.1:8790/youtube", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+          signal,
+        });
+      } catch (e) {
+        if (signal.aborted) throw e;
+        throw Error(
+          language === "tr"
+            ? "Yerel yardımcıya bağlanılamadı. npm run youtube:helper ile başlatın ve yerel ağ iznini kontrol edin; veya ses dosyası seçin."
+            : "Could not connect to the local helper. Start npm run youtube:helper and check local network permission, or choose an audio file.",
+        );
+      }
+      if (!response.ok)
+        throw Error(
+          (await response.json()).error ||
+            "The video could not be downloaded locally.",
+        );
+      const blob = await response.blob();
+      file = new File(
+        [blob],
+        decodeURIComponent(
+          response.headers.get("X-Modscore-Title") || "YouTube recording",
+        ),
+        { type: blob.type },
+      );
+    }
+    if (!file) throw Error("No audio file");
+    const { transcribeAudio } = await import("./audio-transcription");
+    const notes = await transcribeAudio(file, {
+      seconds: Math.min(180, (bars * 4 * 60) / bpm + 15),
+      signal,
+      progress: (p) =>
+        status(
+          `${language === "tr" ? "Notalar okunuyor" : "Reading notes"} · ${Math.round(p * 100)}%`,
+        ),
+    });
+    const { audioNotesToScore } = await import("./piano-score");
+    const result = audioNotesToScore(notes, {
+      title: title || file.name.replace(/\.[^.]+$/, ""),
+      bpm,
+      bars,
+    });
+    const p: Project = {
+      id: crypto.randomUUID(),
+      title: title || file.name.replace(/\.[^.]+$/, ""),
+      xml: result.xml,
+      pages: [],
+      originals: [file],
+      created: Date.now(),
+      updated: Date.now(),
+      reviewed: false,
+      reference: reference
+        ? {
+            url: `https://www.youtube.com/watch?v=${youtubeId(reference)}`,
+            title: file.name,
+          }
+        : undefined,
+    };
+    await saveScore(p);
+    busy = false;
+    await openProject(p);
+    toast(
+      language === "tr"
+        ? "Otomatik transkripsiyon hazır. Notaları kayıtla karşılaştırın; Export ile MIDI indirin."
+        : "Transcription ready. Compare the notes with the recording; use Export to download MIDI.",
+    );
+  } finally {
+    busy = false;
+    audioAbort = undefined;
+    if (cancel?.isConnected) cancel.hidden = true;
+    if (submit?.isConnected) submit.disabled = false;
+  }
+}
+
 function home() {
-  return `<section class="intro"><p class="eyebrow">SCAN. LISTEN. LEARN.</p><h1>${label("Your music, in motion.")}</h1><p class="lede">${label("Turn printed music into something you can hear, see, and learn. All on your device.")}</p><div class="entry-cards"><button class="entry-card primary" data-action="capture"><span class="entry-icon">${icon("scan")}</span><strong>${label("Scan sheet music")}</strong><span>${label("Camera")}</span><span class="card-end">${icon("plus")}</span></button><button class="entry-card" data-action="import"><span class="entry-icon">${icon("import")}</span><strong>${label("Import score")}</strong><span>${label("Image, PDF, MusicXML or MIDI")}</span><span class="card-end">${icon("plus")}</span></button></div><p class="privacy-note">${icon("shield")}${label("No uploads. No accounts. Yours.")}</p></section><section class="library-section"><div class="section-heading"><h2>${label("Local library")}</h2>${button("My scores", "library", "text-button")}</div><div class="score-list">${rows(library.slice(0, 4))}</div><button class="text-button test-study" data-action="study">${label("Original test score (CC0)")}</button></section>`;
+  return `<section class="intro"><p class="eyebrow">SCAN. LISTEN. LEARN.</p><h1>${label("Your music, in motion.")}</h1><p class="lede">${label("Turn printed music into something you can hear, see, and learn. All on your device.")}</p><div class="entry-cards"><button class="entry-card primary" data-action="capture"><span class="entry-icon">${icon("scan")}</span><strong>${label("Scan sheet music")}</strong><span>${label("Camera")}</span><span class="card-end">${icon("plus")}</span></button><button class="entry-card" data-action="import"><span class="entry-icon">${icon("import")}</span><strong>${label("Import score")}</strong><span>${label("Image, PDF, MusicXML or MIDI")}</span><span class="card-end">${icon("plus")}</span></button></div><p class="privacy-note">${icon("shield")}${label("No uploads. No accounts. Yours.")}</p></section>${demoCards()}<section class="library-section"><div class="section-heading"><h2>${label("Local library")}</h2>${button("My scores", "library", "text-button")}</div><div class="score-list">${rows(library.slice(0, 4))}</div><button class="text-button test-study" data-action="study">${label("Original test score (CC0)")}</button></section>`;
 }
 function libraryView() {
   return `<div class="page-heading"><div><p class="eyebrow">LOCAL / PRIVATE</p><h1>${label("My scores")}</h1></div>${button("Import score", "import", "primary", "plus")}</div><label class="search">${icon("search")}<input id="search" placeholder="${label("Search your scores")}" aria-label="${label("Search your scores")}"></label><div id="library-list" class="score-list">${rows(library)}</div><p class="muted">${label("Storage is not a backup. Export your projects regularly.")}</p>`;
@@ -196,15 +446,28 @@ function voiceControls() {
     )}</div><p class="fine">Staff/voice labels come from MusicXML. Staff 1/2 are not guaranteed to mean right/left hand.</p></details>`;
 }
 function playerView(pianoOnly = false) {
-  return `<div class="player-heading"><div><p class="eyebrow">${pianoOnly ? "INSTRUMENT / A0–C8" : project?.pages.length ? "RECOGNIZED SCORE" : "MUSIC WORKSPACE"}</p><h1>${e(pianoOnly ? t("Virtual piano") : project?.title || t("Workspace"))}</h1><p class="score-meta">${timeline && !pianoOnly ? `${timeline.measures.length} measures · ${timeline.notes.length} notes · ${label(project?.reviewed ? "Saved on this device" : "Review required")}` : label("No uploads. No accounts. Yours.")}</p></div><div class="row">${project ? button("Export", "export", "", "download") : ""}${button("Fullscreen", "fullscreen", "text-button")}</div></div>${!pianoOnly && timeline ? `<div class="workspace-tabs" role="tablist">${["score", "compare", "original", "editor"].map((m) => `<button role="tab" aria-selected="${mode === m}" data-mode="${m}" class="${mode === m ? "selected" : ""}">${label(m === "score" ? "Score" : m === "compare" ? "Compare" : m === "original" ? "Original" : "Review notes")}</button>`).join("")}<span class="review-count">${timeline.warnings.length ? `${timeline.warnings.length} review notes` : "Review recognition before practice"}</span></div>${timeline.warnings.length ? `<details class="warnings"><summary>${timeline.warnings.length} playback / recognition notices</summary><ul>${timeline.warnings.map((w) => `<li>${e(w)}</li>`).join("")}</ul></details>` : ""}${reviewPanel()}<div class="score-workspace">${mode === "editor" ? editor() : mode === "original" ? originalView() : mode === "compare" ? `<div class="score-compare"><section><h3>${label("Original")}</h3>${originalView()}</section><section><h3>${label("Score")}</h3><div id="notation" class="notation"></div></section></div>` : `<div id="notation" class="notation" aria-label="Reconstructed sheet music"></div>`}</div><div class="measure-navigation"><span>${label("Select measures below to seek.")}</span><div class="measure-strip">${timeline.measures.map((m) => `<button data-measure="${m.index}" title="Seek to measure ${e(m.number)}">${e(m.number)}</button>`).join("")}</div></div>${voiceControls()}` : pianoOnly ? "" : `<div class="empty">${icon("music")}<p>${label("Open a score to start listening.")}</p>${button("Import score", "import", "primary")}</div>`}<div class="instrument-strip"><label>${label("Instrument")}<select id="instrument" aria-label="${label("Instrument")}">${instrumentNames.map((n, i) => `<option value="${i}" ${i === audio.instruments.program ? "selected" : ""}>${String(i + 1).padStart(3, "0")} · ${n.replaceAll("_", " ")}</option>`).join("")}</select></label><label>${label("Transpose")}<input id="transpose" type="number" value="${audio.transpose}" min="-24" max="24"></label><label>${label("Volume")}<input id="volume" type="range" value="${audio.volume}" min="0" max="1" step="0.01"></label><div class="piano-mode">${button(roll ? "Keyboard" : "Piano roll", "toggle-roll", "text-button")}${button("Zoom", "zoom", "text-button")}</div></div><div class="live-toolbar">${button("Enable audio", "enable-live")}${button("Connect MIDI", "connect-midi")}${button("All notes off", "panic")}<span id="live-status"></span></div><div id="piano" class="piano-scroll"></div><div class="keyboard-meta"><span>A0 — C8 · 88 keys</span><span id="active-names" aria-live="off"></span><label><input id="auto-keys" type="checkbox" ${auto ? "checked" : ""}>${label("Auto-position keys")}</label></div>${!pianoOnly ? transport() : ""}`;
+  return `<div class="player-heading"><div><p class="eyebrow">${pianoOnly ? "INSTRUMENT / A0–C8" : project?.pages.length ? "RECOGNIZED SCORE" : "MUSIC WORKSPACE"}</p><h1>${e(pianoOnly ? t("Virtual piano") : project?.title || t("Workspace"))}</h1><p class="score-meta">${timeline && !pianoOnly ? `${timeline.measures.length} measures · ${timeline.notes.length} notes · ${label(project?.reviewed ? "Saved on this device" : "Review required")}` : label("No uploads. No accounts. Yours.")}</p></div><div class="row">${project ? button("Export", "export", "", "download") : ""}${button("Fullscreen", "fullscreen", "text-button")}</div></div>${!pianoOnly && timeline ? demoBanner() : ""}${!pianoOnly && timeline ? `<div class="workspace-tabs" role="tablist">${["score", "compare", "original", "editor"].map((m) => `<button role="tab" aria-selected="${mode === m}" data-mode="${m}" class="${mode === m ? "selected" : ""}">${label(m === "score" ? "Score" : m === "compare" ? "Compare" : m === "original" ? "Original" : "Review notes")}</button>`).join("")}<span class="review-count">${timeline.warnings.length ? `${timeline.warnings.length} review notes` : "Review recognition before practice"}</span></div>${timeline.warnings.length ? `<details class="warnings"><summary>${timeline.warnings.length} playback / recognition notices</summary><ul>${timeline.warnings.map((w) => `<li>${e(w)}</li>`).join("")}</ul></details>` : ""}${reviewPanel()}<div class="score-workspace">${mode === "editor" ? editor() : mode === "original" ? originalView() : mode === "compare" ? `<div class="score-compare"><section><h3>${label("Original")}</h3>${originalView()}</section><section><h3>${label("Score")}</h3><div id="notation" class="notation"></div></section></div>` : `<div id="notation" class="notation" aria-label="Reconstructed sheet music"></div>`}</div><div class="measure-navigation"><span>${label("Select measures below to seek.")}</span><button class="text-button" data-action="pick-loop" aria-pressed="${loopPicking}">${language === "tr" ? "Döngü aralığı seç" : "Select loop range"}</button><div class="measure-strip">${timeline.measures.map((m) => `<button data-measure="${m.index}" title="Seek to measure ${e(m.number)}">${e(m.number)}</button>`).join("")}</div></div>${voiceControls()}` : pianoOnly ? "" : `<div class="empty">${icon("music")}<p>${label("Open a score to start listening.")}</p>${button("Import score", "import", "primary")}</div>`}<div class="instrument-strip"><label>${label("Instrument")}<select id="instrument" aria-label="${label("Instrument")}">${instrumentNames.map((n, i) => `<option value="${i}" ${i === audio.instruments.program ? "selected" : ""}>${String(i + 1).padStart(3, "0")} · ${n.replaceAll("_", " ")}</option>`).join("")}</select></label><label>${label("Transpose")}<input id="transpose" type="number" value="${audio.transpose}" min="-24" max="24"></label><label>${label("Volume")}<input id="volume" type="range" value="${audio.volume}" min="0" max="1" step="0.01"></label><div class="piano-mode">${button(roll ? "Keyboard" : "Piano roll", "toggle-roll", "text-button")}${button("Zoom", "zoom", "text-button")}</div></div>${keyboardControls()}<div id="piano" class="piano-scroll"></div><div class="keyboard-meta"><span>A0 — C8 · 88 keys</span><span id="active-names" aria-live="off"></span><label><input id="auto-keys" type="checkbox" ${auto ? "checked" : ""}>${label("Auto-position keys")}</label></div>${!pianoOnly ? transport() : ""}`;
 }
 function reviewPanel() {
-  if (!project?.pages.length) return "";
+  if (
+    !project ||
+    (!project.pages.length &&
+      !project.xml.includes("Automatic audio transcription"))
+  )
+    return "";
   const rows = reviewEncoding(project.xml),
     issues = rows.filter((r) => r.issues.length);
-  return `<details class="encoding-review"><summary>${language === "tr" ? "Tanıma incelemesi gerekli" : "Recognition needs review"} · ${issues.length} ${language === "tr" ? "yapısal zamanlama uyarısı (doğruluk puanı değil)" : "structural timing notices (not an accuracy score)"}</summary><p>${language === "tr" ? "Bu denetim doğruluk puanı değildir. Bağları, susları, akorları ve metinleri orijinalle karşılaştırın. Otomatik kirişleme yalnızca çizimi düzeltir." : "This is not an accuracy score. Compare ties, rests, chords and text against the original. Automatic beaming only changes engraving."}</p><div class="audit-scroll"><table><thead><tr><th>Part / measure</th><th>Quarter beats</th><th>Encoded ties</th><th>Review</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${e(r.part)} / ${e(r.measure)} <button class="text-button" data-review-note="${timeline?.notes.findIndex(n => n.track === r.part && n.measure === r.index) ?? -1}">${language === "tr" ? "İncele" : "Review"}</button></td><td>${r.encoded} / ${r.expected}</td><td>${r.ties}</td><td>${r.issues.map(e).join("<br>") || "No structural mismatch detected; image review required."}</td></tr>`).join("")}</tbody></table></div></details>`;
+  return `<details class="encoding-review"><summary>${language === "tr" ? "Tanıma incelemesi gerekli" : "Recognition needs review"} · ${issues.length} ${language === "tr" ? "yapısal zamanlama uyarısı (doğruluk puanı değil)" : "structural timing notices (not an accuracy score)"}</summary><p>${language === "tr" ? "Bu denetim doğruluk puanı değildir. Bağları, susları, akorları ve metinleri orijinalle karşılaştırın. Otomatik kirişleme yalnızca çizimi düzeltir." : "This is not an accuracy score. Compare ties, rests, chords and text against the original. Automatic beaming only changes engraving."}</p><div class="audit-scroll"><table><thead><tr><th>Part / measure</th><th>Quarter beats</th><th>Encoded ties</th><th>Review</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${e(r.part)} / ${e(r.measure)} <button class="text-button" data-review-note="${timeline?.notes.findIndex((n) => n.track === r.part && n.measure === r.index) ?? -1}">${language === "tr" ? "İncele" : "Review"}</button></td><td>${r.encoded} / ${r.expected}</td><td>${r.ties}</td><td>${r.issues.map(e).join("<br>") || "No structural mismatch detected; image review required."}</td></tr>`).join("")}</tbody></table></div></details>`;
 }
 function originalView() {
+  if (project && !project.pages.length) {
+    const audio = project.originals.find((b) => b.type.startsWith("audio/"));
+    if (audio) {
+      const url = URL.createObjectURL(audio);
+      urls.push(url);
+      return `<div class="audio-original"><h3>${language === "tr" ? "Özgün kayıt" : "Source recording"}</h3><audio controls src="${url}" preload="metadata"></audio><p class="fine">${language === "tr" ? "Otomatik notaları bu kayıtla karşılaştırın." : "Compare the automatic transcription with this recording."}</p>${project.reference ? `<a href="${e(project.reference.url)}" target="_blank" rel="noopener">${e(project.reference.title)}</a>` : ""}</div>`;
+    }
+  }
   return project?.pages.length
     ? `<div class="original-pages">${project.pages
         .map((p, i) => {
@@ -217,9 +480,12 @@ function originalView() {
 }
 async function drawSourceExcerpt() {
   if (!project || !timeline) return;
-  const note = timeline.notes[Math.min(selectedNote, timeline.notes.length-1)];
+  const note =
+    timeline.notes[Math.min(selectedNote, timeline.notes.length - 1)];
   if (!note) return;
-  const source = xmlDocument(project.xml).querySelectorAll("part > measure > note")[note?.source[0]];
+  const source = xmlDocument(project.xml).querySelectorAll(
+    "part > measure > note",
+  )[note?.source[0]];
   const position = source && sourceLocation(source);
   const pageNumber = timeline.measures[note?.measure]?.page ?? 0;
   const image = project.pages[pageNumber];
@@ -230,27 +496,68 @@ async function drawSourceExcerpt() {
   try {
     if (!canvas.isConnected) return;
     const unit = (position.box[3] - position.box[1]) / 4;
-    const left = Math.max(0, position.x - 10 * unit), right = Math.min(bitmap.width, position.x + 10 * unit);
-    const top = Math.max(0, position.box[1] - 5 * unit), bottom = Math.min(bitmap.height, position.box[3] + 5 * unit);
+    const left = Math.max(0, position.x - 10 * unit),
+      right = Math.min(bitmap.width, position.x + 10 * unit);
+    const top = Math.max(0, position.box[1] - 5 * unit),
+      bottom = Math.min(bitmap.height, position.box[3] + 5 * unit);
     if (right <= left || bottom <= top) return;
-    const scale = Math.min(3, 900 / (right-left));
-    canvas.width = Math.round((right-left)*scale); canvas.height = Math.round((bottom-top)*scale);
+    const scale = Math.min(3, 900 / (right - left));
+    canvas.width = Math.round((right - left) * scale);
+    canvas.height = Math.round((bottom - top) * scale);
     const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(bitmap, left, top, right-left, bottom-top, 0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#3770cc"; ctx.lineWidth = 2; ctx.setLineDash([5,5]);
-    const x = (position.x-left)*scale; ctx.strokeRect(Math.max(0,x-unit*scale),0,2*unit*scale,canvas.height);
+    ctx.drawImage(
+      bitmap,
+      left,
+      top,
+      right - left,
+      bottom - top,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    ctx.strokeStyle = "#3770cc";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    const x = (position.x - left) * scale;
+    ctx.strokeRect(
+      Math.max(0, x - unit * scale),
+      0,
+      2 * unit * scale,
+      canvas.height,
+    );
     figure.hidden = false;
-    figure.querySelector("figcaption")!.textContent = `Original · page ${pageNumber+1} · approximate model position`;
-  } finally { bitmap.close(); }
+    figure.querySelector("figcaption")!.textContent =
+      `Original · page ${pageNumber + 1} · approximate model position`;
+  } finally {
+    bitmap.close();
+  }
 }
 function editor() {
   if (!timeline) return "";
   const n = timeline.notes[Math.min(selectedNote, timeline.notes.length - 1)];
   if (!n) return "<p>No playable notes to edit.</p>";
-  return `<div class="editor"><div><h2>${label("Review notes")}</h2><p class="muted">Compare the original with reconstructed notation. Corrections update playback and MusicXML.</p><label>Note<select id="edit-select">${timeline.notes.map((n, i) => `<option value="${i}" ${i === selectedNote ? "selected" : ""}>Measure ${n.measure + 1} · ${noteName(n.pitch)} · staff ${n.staff} / voice ${e(n.voice)} · beat ${n.beat}</option>`).join("")}</select></label><div class="edit-fields"><label>Score tempo (BPM)<input id="score-tempo" type="number" min="20" max="300" value="${timeline.tempos[0].bpm}"></label><label>Tempo instruction (from original)<input id="tempo-words" placeholder="Slowly, steady tempo"></label>${button("Save score tempo", "save-tempo")}</div><div class="edit-fields"><label>${label("Pitch")}<select id="edit-pitch">${Array.from({ length: 128 }, (_, p) => `<option value="${p}" ${p === n.pitch ? "selected" : ""}>${noteName(p)} · MIDI ${p}</option>`).join("")}</select></label><label>Rhythm preset<select id="edit-rhythm"><option value="">Keep encoded rhythm</option>${[[4,"Whole"],[2,"Half"],[1,"Quarter"],[.5,"Eighth"],[.25,"16th"],[.125,"32nd"],[.0625,"64th"],[.03125,"128th"],[1/3,"Eighth triplet"],[1/6,"16th triplet"],[1/12,"32nd triplet"]].map(([v,name]) => `<option value="${v}">${name}</option>`).join("")}</select></label><label>${label("Duration (beats)")}<input id="edit-duration" type="number" min="0.00390625" step="any" value="${n.duration}"></label><label>${label("Start (beats)")}<input id="edit-onset" type="number" min="0" step="any" value="${n.beat}"></label></div><p class="fine">Durations change subsequent timing in the same MusicXML voice. Tied durations/onsets require an external notation editor. Move a leading chord note to move its chord. Onset edits stay inside the original measure. Accidentals are encoded by the selected chromatic pitch.</p><div class="row">${button("Apply correction", "correct", "primary")}${button("Tie to next note", "tie-next")}${button("Remove tie", "untie")}${button("Mark reviewed", "reviewed")}</div></div><div class="review-original"><figure id="source-excerpt" hidden><canvas id="source-canvas"></canvas><figcaption></figcaption></figure>${originalView()}</div></div>`;
+  return `<div class="editor"><div><h2>${label("Review notes")}</h2><p class="muted">Compare the original with reconstructed notation. Corrections update playback and MusicXML.</p><label>Note<select id="edit-select">${timeline.notes.map((n, i) => `<option value="${i}" ${i === selectedNote ? "selected" : ""}>Measure ${n.measure + 1} · ${noteName(n.pitch)} · staff ${n.staff} / voice ${e(n.voice)} · beat ${n.beat}</option>`).join("")}</select></label><div class="edit-fields"><label>Score tempo (BPM)<input id="score-tempo" type="number" min="20" max="300" value="${timeline.tempos[0].bpm}"></label><label>Tempo instruction (from original)<input id="tempo-words" placeholder="Slowly, steady tempo"></label>${button("Save score tempo", "save-tempo")}</div><div class="edit-fields"><label>${label("Pitch")}<select id="edit-pitch">${Array.from({ length: 128 }, (_, p) => `<option value="${p}" ${p === n.pitch ? "selected" : ""}>${noteName(p)} · MIDI ${p}</option>`).join("")}</select></label><label>Rhythm preset<select id="edit-rhythm"><option value="">Keep encoded rhythm</option>${[
+    [4, "Whole"],
+    [2, "Half"],
+    [1, "Quarter"],
+    [0.5, "Eighth"],
+    [0.25, "16th"],
+    [0.125, "32nd"],
+    [0.0625, "64th"],
+    [0.03125, "128th"],
+    [1 / 3, "Eighth triplet"],
+    [1 / 6, "16th triplet"],
+    [1 / 12, "32nd triplet"],
+  ]
+    .map(([v, name]) => `<option value="${v}">${name}</option>`)
+    .join(
+      "",
+    )}</select></label><label>${label("Duration (beats)")}<input id="edit-duration" type="number" min="0.00390625" step="any" value="${n.duration}"></label><label>${label("Start (beats)")}<input id="edit-onset" type="number" min="0" step="any" value="${n.beat}"></label></div><p class="fine">Durations change subsequent timing in the same MusicXML voice. Tied durations/onsets require an external notation editor. Move a leading chord note to move its chord. Onset edits stay inside the original measure. Accidentals are encoded by the selected chromatic pitch.</p><div class="row">${button("Apply correction", "correct", "primary")}${button("Tie to next note", "tie-next")}${button("Remove tie", "untie")}${button("Mark reviewed", "reviewed")}</div></div><div class="review-original"><figure id="source-excerpt" hidden><canvas id="source-canvas"></canvas><figcaption></figcaption></figure>${originalView()}</div></div>`;
 }
 function transport() {
-  return `<div class="transport"><div class="transport-main"><div class="transport-buttons"><button data-action="restart" class="icon-button" aria-label="${label("Restart")}">${icon("restart")}</button><button data-action="play" id="play" class="play-button" aria-label="${label(audio.playing ? "Pause" : "Play")}">${icon(audio.playing ? "pause" : "play")}</button><button data-action="stop" class="icon-button" aria-label="${label("Stop")}">${icon("stop")}</button></div><output id="clock">0:00 / ${clock(timeline ? beatToSeconds(timeline.duration, timeline.tempos, audio.speed) : 0)}</output><input id="seek" type="range" min="0" max="${timeline?.duration || 1}" step="0.01" value="${audio.position}" aria-label="Seek playback"><label class="tempo-label">${label("Tempo")}<span><input id="tempo" type="number" min="20" max="300" value="${Math.round((timeline?.tempos[0]?.bpm || 120) * audio.speed)}"> BPM</span></label></div><div class="transport-options"><label><input id="follow" type="checkbox" ${follow ? "checked" : ""}>${label("Follow score")}</label><label><input id="metronome" type="checkbox" ${audio.metronome ? "checked" : ""}>${label("Metronome")}</label><label>${label("Loop measures")}<input id="loop-start" type="number" min="1" max="${timeline?.measures.length || 1}" value="1" aria-label="Loop first measure"><span>–</span><input id="loop-end" type="number" min="1" max="${timeline?.measures.length || 1}" value="${timeline?.measures.length || 1}" aria-label="Loop last measure"><input id="loop-on" type="checkbox" ${audio.loop ? "checked" : ""} aria-label="Enable measure loop"></label></div></div>`;
+  const tr = language === "tr";
+  return `<div class="transport"><div class="transport-main"><div class="transport-buttons"><button data-action="restart" class="icon-button" aria-label="${label("Restart")}">${icon("restart")}</button><button data-action="play" id="play" class="play-button" aria-label="${label(audio.playing ? "Pause" : "Play")}">${icon(audio.playing ? "pause" : "play")}</button><button data-action="stop" class="icon-button" aria-label="${label("Stop")}">${icon("stop")}</button></div><output id="clock">0:00 / ${clock(timeline ? beatToSeconds(timeline.duration, timeline.tempos, audio.speed) : 0)}</output><input id="seek" type="range" min="0" max="${timeline?.duration || 1}" step="0.01" value="${audio.position}" aria-label="Seek playback"><label class="tempo-label">${label("Tempo")}<span><input id="tempo" type="number" min="20" max="300" value="${Math.round((timeline?.tempos[0]?.bpm || 120) * audio.speed)}"> BPM</span></label></div><div class="transport-options"><label class="follow-control"><input id="follow" type="checkbox" ${follow ? "checked" : ""}>${label("Follow score")}</label><section class="practice-loop" id="practice-loop"><label class="practice-toggle"><input id="loop-on" type="checkbox" ${audio.loop ? "checked" : ""} aria-label="Enable measure loop">${label("Loop measures")}</label><div class="loop-fields"><input id="loop-start" type="number" min="1" max="${timeline?.measures.length || 1}" value="${loopStart}" aria-label="Loop first measure"><span>–</span><input id="loop-end" type="number" min="1" max="${timeline?.measures.length || 1}" value="${loopEnd}" aria-label="Loop last measure"><button data-action="loop-current" class="text-button">${tr ? "Bu ölçü" : "This measure"}</button></div><output id="loop-status" class="fine"></output></section><section class="practice-metronome" id="practice-metronome"><label class="practice-toggle"><input id="metronome" type="checkbox" ${audio.metronome ? "checked" : ""}>${label("Metronome")}</label><div class="metronome-mini"><div id="metro-pulses" class="metro-pulses" aria-hidden="true"></div><output id="metro-count" aria-label="Metronome beat"></output><label class="metronome-volume-label"><span>${tr ? "Ses" : "Volume"}</span><input id="metronome-volume" aria-label="Metronome volume" type="range" min="0" max="1" step="0.01" value="${audio.metronomeVolume}"></label><output id="metronome-level">${Math.round(audio.metronomeVolume * 100)}%</output></div></section></div></div>`;
 }
 function settings() {
   return `<div class="page-heading"><div><p class="eyebrow">YOUR DEVICE / YOUR MUSIC</p><h1>${label("Settings")}</h1></div></div><div class="settings-grid">${hardwarePanel()}<section class="panel"><h2>Appearance</h2><label>${label("Theme")}<select id="theme"><option value="dark" ${theme === "dark" ? "selected" : ""}>${label("Dark")}</option><option value="light" ${theme === "light" ? "selected" : ""}>${label("Light")}</option></select></label><label>${label("Language")}<select id="language"><option value="en" ${language === "en" ? "selected" : ""}>English</option><option value="tr" ${language === "tr" ? "selected" : ""}>Türkçe</option></select></label></section><section class="panel"><h2>${label("Offline assets")}</h2><p id="offline-detail">Checking local assets…</p><p id="storage-detail" class="muted"></p><div class="stack">${button("Prepare offline use", "offline", "primary")}${button("Download recognition models", "models")}${button("Request persistent storage", "persist")}${button("Clear recognition models", "clear-models", "text-button danger")}</div><div id="asset-status" role="status"></div><p class="fine">The app shell, piano samples and recognition assets can be stored offline. Other GM instruments download on first selection. Only the piano and latest selected bank are retained. Browser storage can be evicted.</p></section><section class="panel"><h2>${label("Install on iPhone")}</h2><ol><li>Open the app’s HTTPS address in Safari.</li><li>Tap Share, then Add to Home Screen.</li><li>Open modScore from its icon and prepare offline use there.</li><li>Keep the app open until downloads complete; export a backup of your library.</li></ol><p class="fine">No App Store or Apple developer account. Safari and installed apps may have separate storage. Physical iPhone XS / iOS 18 testing is pending.</p></section><section class="panel"><h2>${label("Privacy")}</h2><p>Photographs, scores, recognition and playback stay on your device. No accounts, analytics, ads or cloud uploads.</p><p>Initial model/library assets come from this host. Optional instrument downloads request a pinned FluidR3 bank from GitHub; no score data is sent.</p><h3>${label("Source & licenses")}</h3><p><a href="${assetPath("about/")}" target="_blank" rel="noopener">About modScore · Setup guide</a> · <a href="https://github.com/WeAreTheArtMakers/modScore" target="_blank" rel="noopener">GitHub</a></p><p>modScore is free software under AGPL-3.0-only, without warranty. You may modify and redistribute under the license.</p><div class="row"><a href="${assetPath("source.tar.gz")}" download>Corresponding source</a><a href="${assetPath("LICENSE")}" target="_blank" rel="noopener">AGPL-3.0</a><a href="${assetPath("THIRD_PARTY_NOTICES.md")}" target="_blank" rel="noopener">Attributions</a></div><p class="fine">Recognition: Partsong / homr-rs / homr. Model training-data provenance caveats are documented in the notices. Samples: FluidR3, Frank Wen, CC BY 3.0.</p></section></div>`;
@@ -271,11 +578,13 @@ function render() {
     scan: "Scan sheet music",
     piano: "Virtual piano",
     settings: "Settings",
+    audio: "Audio & YouTube",
   };
   app.innerHTML = `<aside class="sidebar"><a href="#" class="brand" data-action="home"><span class="brand-mark">m<span>♮</span></span>mod<span>Score</span></a><p class="sidebar-caption">YOUR MUSIC STUDIO</p><nav aria-label="Main">${[
     ["home", "Workspace", "home"],
     ["library", "My scores", "library"],
     ["piano", "Virtual piano", "piano"],
+    ["audio", "Audio & YouTube", "music"],
   ]
     .map(([id, title, ic]) =>
       button(
@@ -287,7 +596,7 @@ function render() {
     )
     .join(
       "",
-    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore 0.4 · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}">${e(s)}</button>`).join("")}</div><p class="fine">Project backups preserve images and notation. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
+    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore 0.5 · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : view === "audio" ? audioView() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}">${e(s)}</button>`).join("")}</div><p class="fine">Project backups preserve images and notation. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
   bind();
   if (mode === "editor") void drawSourceExcerpt().catch(() => {});
   if (view === "player" || view === "piano") {
@@ -310,6 +619,7 @@ function render() {
     }
   }
   refreshHardware();
+  syncPracticeUI();
   void updateReadiness();
 }
 function clock(seconds: number) {
@@ -317,10 +627,11 @@ function clock(seconds: number) {
 }
 async function navigate(next: string) {
   if (busy) {
-    toast("Cancel the current recognition before leaving.", true);
+    toast("Finish or cancel the current operation before leaving.", true);
     return;
   }
   audio.pause();
+  guideActive = false;
   live.panic();
   view = next;
   if (next === "home" || next === "library") await refreshLibrary();
@@ -328,6 +639,11 @@ async function navigate(next: string) {
 }
 async function openProject(p: Project) {
   audio.stop();
+  guideActive = false;
+  guideSeconds = 0;
+  guideStep = 0;
+  loopPicking = false;
+  loopPickAnchor = undefined;
   project = p;
   if (!p.xml) {
     pages = [...p.pages];
@@ -345,6 +661,8 @@ async function openProject(p: Project) {
   audio.transpose = 0;
   selectedNote = 0;
   audio.loop = undefined;
+  loopStart = 1;
+  loopEnd = Math.min(4, timeline.measures.length);
   audio.voices.clear();
   mode = "score";
   view = "player";
@@ -544,10 +862,105 @@ async function persist() {
 }
 async function action(name: string) {
   switch (name) {
+    case "audio":
+      await navigate("audio");
+      break;
+    case "demo-basic":
+      await openProject(await demoProject("basic"));
+      break;
+    case "demo-beethoven":
+      await openProject(await demoProject("beethoven"));
+      break;
+    case "demo-start":
+      guideActive = true;
+      guideStep = 0;
+      guideSeconds = 0;
+      guideLastFrame = performance.now();
+      audio.stop();
+      audio.setLoop(undefined);
+      audio.metronome = false;
+      audio.speed = 1;
+      follow = true;
+      roll = true;
+      piano?.showRoll(true);
+      await audio.play();
+      break;
+    case "demo-stop":
+      guideActive = false;
+      audio.pause();
+      updatePlay();
+      break;
+    case "demo-follow":
+      follow = true;
+      roll = true;
+      piano?.showRoll(true);
+      guideStep = 0;
+      break;
+    case "demo-loop":
+      loopStart = 1;
+      loopEnd = Math.min(4, timeline?.measures.length || 1);
+      applyLoop(true);
+      guideStep = 1;
+      break;
+    case "demo-metronome":
+      audio.metronome = !audio.metronome;
+      syncPracticeUI();
+      guideStep = 2;
+      break;
+    case "demo-keyboard": {
+      const help = document.querySelector<HTMLDetailsElement>("#typing-help");
+      if (help) {
+        help.open = true;
+        help.scrollIntoView({
+          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "instant"
+            : "smooth",
+          block: "nearest",
+        });
+      }
+      guideStep = 3;
+      break;
+    }
+    case "octave-down":
+      live.changeOctave(-1);
+      break;
+    case "octave-up":
+      live.changeOctave(1);
+      break;
+    case "pick-loop":
+      loopPicking = !loopPicking;
+      loopPickAnchor = undefined;
+      syncPracticeUI();
+      toast(
+        loopPicking
+          ? language === "tr"
+            ? "İlk ve son ölçüyü seçin."
+            : "Select the first and last measure."
+          : language === "tr"
+            ? "Döngü seçimi kapalı."
+            : "Loop selection finished.",
+      );
+      break;
+    case "loop-current":
+      if (timeline) {
+        loopStart = loopEnd = lastMeasure + 1;
+        applyLoop(true);
+      }
+      break;
+    case "transcribe-audio":
+      await transcribeSource();
+      break;
+    case "cancel-audio":
+      audioAbort?.abort();
+      break;
     case "enable-live":
       await audio.activate();
       await audio.instruments.prepare(audio.context!, []);
-      toast("Ses hazır. A W S E D F T G Y H U J K · Z/X oktav");
+      toast(
+        language === "tr"
+          ? "Ses hazır. Klavye tuşlarını aşağıdaki panelden açabilirsiniz."
+          : "Audio enabled. Open the keyboard panel for note keys.",
+      );
       break;
     case "connect-midi":
       await live.connect();
@@ -604,7 +1017,9 @@ async function action(name: string) {
       document.querySelector<HTMLInputElement>("#files")!.click();
       break;
     case "study": {
-      const xml = await (await fetch(assetPath("fixtures/grand-staff.musicxml"))).text();
+      const xml = await (
+        await fetch(assetPath("fixtures/grand-staff.musicxml"))
+      ).text();
       const study: Project = {
         id: crypto.randomUUID(),
         title: "Recognition study · original CC0 test score",
@@ -936,13 +1351,25 @@ function bind() {
     "input",
     (ev) => (scanName = (ev.target as HTMLInputElement).value),
   );
-  app
-    .querySelectorAll<HTMLElement>("[data-measure]")
-    .forEach(
-      (n) =>
-        (n.onclick = () =>
-          audio.seek(timeline!.measures[Number(n.dataset.measure)].beat)),
-    );
+  app.querySelectorAll<HTMLElement>("[data-measure]").forEach(
+    (n) =>
+      (n.onclick = () => {
+        const index = Number(n.dataset.measure);
+        if (loopPicking) {
+          if (loopPickAnchor === undefined) {
+            loopPickAnchor = index;
+            loopStart = loopEnd = index + 1;
+            syncPracticeUI();
+          } else {
+            loopStart = Math.min(loopPickAnchor, index) + 1;
+            loopEnd = Math.max(loopPickAnchor, index) + 1;
+            loopPicking = false;
+            loopPickAnchor = undefined;
+            applyLoop(true);
+          }
+        } else audio.seek(timeline!.measures[index].beat);
+      }),
+  );
   on("instrument", "change", async (ev) => {
     live.panic();
     const n = ev.target as HTMLSelectElement;
@@ -991,41 +1418,67 @@ function bind() {
     "change",
     (ev) => (auto = (ev.target as HTMLInputElement).checked),
   );
-  on(
-    "metronome",
-    "change",
-    (ev) => (audio.metronome = (ev.target as HTMLInputElement).checked),
-  );
+  on("metronome", "change", (ev) => {
+    audio.metronome = (ev.target as HTMLInputElement).checked;
+    syncPracticeUI();
+  });
+  on("metronome-volume", "input", (ev) => {
+    audio.setMetronomeVolume(Number((ev.target as HTMLInputElement).value));
+    localStorage.setItem(
+      "modscore-metronome-volume",
+      String(audio.metronomeVolume),
+    );
+    syncPracticeUI();
+  });
   const setLoop = () => {
-    const checked = (document.querySelector("#loop-on") as HTMLInputElement)
-      .checked;
-    const a =
-        Number(
-          (document.querySelector("#loop-start") as HTMLInputElement).value,
-        ) - 1,
-      b =
-        Number(
-          (document.querySelector("#loop-end") as HTMLInputElement).value,
-        ) - 1;
-    if (checked) {
-      if (
-        !timeline ||
-        !Number.isInteger(a) ||
-        !Number.isInteger(b) ||
-        a < 0 ||
-        b < a ||
-        b >= timeline.measures.length
-      )
-        throw Error("Choose a valid first and last measure.");
-      audio.loop = [
-        timeline.measures[a].beat,
-        timeline.measures[b].beat + timeline.measures[b].duration,
-      ];
-    } else audio.loop = undefined;
-    audio.seek(audio.now());
+    if (!timeline) return;
+    const first = document.querySelector<HTMLInputElement>("#loop-start")!,
+      last = document.querySelector<HTMLInputElement>("#loop-end")!;
+    const a = Number(first.value),
+      b = Number(last.value);
+    if (
+      !Number.isInteger(a) ||
+      !Number.isInteger(b) ||
+      a < 1 ||
+      b < a ||
+      b > timeline.measures.length
+    )
+      throw Error("Choose a valid first and last measure.");
+    loopStart = a;
+    loopEnd = b;
+    applyLoop(document.querySelector<HTMLInputElement>("#loop-on")!.checked);
   };
   for (const id of ["loop-on", "loop-start", "loop-end"])
     on(id, "change", setLoop);
+  on("audio-file", "change", (ev) => {
+    audioFile = (ev.target as HTMLInputElement).files?.[0];
+    if (audioFile) {
+      audioSourceUrl = "";
+      const url = document.querySelector<HTMLInputElement>("#youtube-url");
+      if (url) url.value = "";
+      const name = document.querySelector("#audio-file-name");
+      if (name) name.textContent = audioFile.name;
+      const title = document.querySelector<HTMLInputElement>("#audio-title");
+      if (title && !title.value)
+        title.value = audioFile.name.replace(/\.[^.]+$/, "");
+    }
+  });
+  on("youtube-url", "input", (ev) => {
+    audioSourceUrl = (ev.target as HTMLInputElement).value;
+    if (audioSourceUrl) {
+      audioFile = undefined;
+      const input = document.querySelector<HTMLInputElement>("#audio-file");
+      if (input) input.value = "";
+    }
+  });
+  app
+    .querySelectorAll<HTMLElement>("[data-demo]")
+    .forEach(
+      (node) =>
+        (node.onclick = safe(async () =>
+          openProject(await demoProject(node.dataset.demo!)),
+        )),
+    );
   const voices = (el: HTMLInputElement, field: "mute" | "solo") => {
     const key = field === "mute" ? el.dataset.mute! : el.dataset.solo!;
     const state = audio.voices.get(key) || { mute: false, solo: false };
@@ -1048,13 +1501,22 @@ function bind() {
         colors[keys.indexOf(n.dataset.color!) % colors.length] = n.value;
       }),
   );
-  app.querySelectorAll<HTMLElement>("[data-review-note]").forEach(node => node.onclick = () => {
-    const index = Number(node.dataset.reviewNote);
-    if (index >= 0) { selectedNote = index; mode = "editor"; render(); }
-  });
+  app.querySelectorAll<HTMLElement>("[data-review-note]").forEach(
+    (node) =>
+      (node.onclick = () => {
+        const index = Number(node.dataset.reviewNote);
+        if (index >= 0) {
+          selectedNote = index;
+          mode = "editor";
+          render();
+        }
+      }),
+  );
   on("edit-rhythm", "change", (ev) => {
     const value = (ev.target as HTMLSelectElement).value;
-    if (value) (document.querySelector("#edit-duration") as HTMLInputElement).value = value;
+    if (value)
+      (document.querySelector("#edit-duration") as HTMLInputElement).value =
+        value;
   });
   on("edit-select", "change", (ev) => {
     selectedNote = Number((ev.target as HTMLSelectElement).value);
@@ -1079,16 +1541,30 @@ function bind() {
     menu.className = "score-actions";
     menu.innerHTML = `<summary>Score actions</summary><div class="row"><label>Title<input id="rename-title" value="${e(project.title)}"></label>${button("Rename", "rename")}${button("Save", "save")}${project.pages.length ? button(language === "tr" ? "Yeniden tanı (kopya)" : "Recognize again (copy)", "rescan") : ""}${button("Delete", "delete", "danger")}</div>`;
     document.querySelector(".player-heading")!.after(menu);
-    menu.querySelector('[data-action="rescan"]')?.addEventListener("click", safe(async () => {
-      if (busy || !project?.pages.length) return;
-      audio.stop(); live.panic();
-      pages = [...project.pages]; originals = [...project.originals];
-      scanId = crypto.randomUUID(); scanName = project.title + " · Re-scan";
-      scanXml = []; pageIndex = 0;
-      status = language === "tr" ? "Yeni motorla tanımaya hazır. Önceki kayıt korunuyor." : "Ready to recognize with the current engine. The previous score is kept.";
-      project = undefined; timeline = undefined; audio.timeline = undefined;
-      await saveImportDraft(); view = "scan"; render();
-    }));
+    menu.querySelector('[data-action="rescan"]')?.addEventListener(
+      "click",
+      safe(async () => {
+        if (busy || !project?.pages.length) return;
+        audio.stop();
+        live.panic();
+        pages = [...project.pages];
+        originals = [...project.originals];
+        scanId = crypto.randomUUID();
+        scanName = project.title + " · Re-scan";
+        scanXml = [];
+        pageIndex = 0;
+        status =
+          language === "tr"
+            ? "Yeni motorla tanımaya hazır. Önceki kayıt korunuyor."
+            : "Ready to recognize with the current engine. The previous score is kept.";
+        project = undefined;
+        timeline = undefined;
+        audio.timeline = undefined;
+        await saveImportDraft();
+        view = "scan";
+        render();
+      }),
+    );
     menu.querySelector('[data-action="rename"]')!.addEventListener(
       "click",
       safe(async () => {
@@ -1170,7 +1646,7 @@ async function doExport(type: number) {
     project.originals.forEach((b, i) =>
       download(
         b,
-        `${name}-original-${i + 1}.${b.type === "application/pdf" ? "pdf" : b.type.includes("png") ? "png" : b.type.includes("xml") ? "musicxml" : b.type.startsWith("image/") ? "jpg" : "bin"}`,
+        `${name}-original-${i + 1}.${b.type === "application/pdf" ? "pdf" : b.type.includes("png") ? "png" : b.type.includes("xml") ? "musicxml" : b.type.includes("wav") ? "wav" : b.type.includes("mpeg") ? "mp3" : b.type.includes("mp4") ? "m4a" : b.type.includes("webm") ? "webm" : b.type.includes("ogg") ? "ogg" : b.type.startsWith("image/") ? "jpg" : "bin"}`,
       ),
     );
   }
@@ -1189,7 +1665,10 @@ async function updateReadiness() {
     let bytes = 0;
     let models = true;
     names.forEach((name, mi) => {
-      const base = new URL(assetPath("recognition/models/" + name), location.origin).href;
+      const base = new URL(
+        assetPath("recognition/models/" + name),
+        location.origin,
+      ).href;
       if (keys.some((k) => k.url === base)) {
         bytes += modelSizes[mi];
         return;
@@ -1252,7 +1731,9 @@ async function prepareOffline() {
   const r = await fetch(assetPath("offline-assets.json"));
   if (!r.ok) throw Error("Build the production app to prepare offline assets.");
   const paths: string[] = await r.json();
-  const cache = await caches.open("modscore-offline-" + encodeURIComponent(import.meta.env.BASE_URL) + "-v1");
+  const cache = await caches.open(
+    "modscore-offline-" + encodeURIComponent(import.meta.env.BASE_URL) + "-v1",
+  );
   for (let i = 0; i < paths.length; i++) {
     const path = assetPath(paths[i]);
     if (!(await cache.match(path))) {
@@ -1271,7 +1752,119 @@ async function prepareOffline() {
     "Offline assets downloaded. Close and reopen the app once, then verify in airplane mode.",
   );
 }
+let pulseTimeline: Timeline | undefined,
+  pulseCache: ReturnType<typeof metronomePulses> = [];
+function practiceFrame(beat: number) {
+  const now = performance.now(),
+    dt = guideLastFrame ? Math.min(0.1, (now - guideLastFrame) / 1000) : 0;
+  guideLastFrame = now;
+  if (guideActive && audio.playing) {
+    guideSeconds += dt;
+    const next =
+      guideSeconds < 8 ? 0 : guideSeconds < 28 ? 1 : guideSeconds < 40 ? 2 : 3;
+    if (next !== guideStep) {
+      guideStep = next;
+      if (next === 1) {
+        loopStart = 1;
+        loopEnd = Math.min(4, timeline?.measures.length || 1);
+        applyLoop(true);
+      }
+      if (next === 2) {
+        audio.metronome = true;
+        syncPracticeUI();
+      }
+      if (next === 3) {
+        applyLoop(false);
+        const help = document.querySelector<HTMLDetailsElement>("#typing-help");
+        if (help) help.open = true;
+      }
+    }
+    if (guideSeconds >= 56) guideActive = false;
+  }
+  const banner = document.querySelector<HTMLElement>("#demo-banner");
+  if (banner) {
+    banner.dataset.playing = String(audio.playing);
+    banner
+      .querySelectorAll<HTMLElement>("[data-guide-step]")
+      .forEach((n) =>
+        n.setAttribute(
+          "aria-pressed",
+          String(
+            Number(n.dataset.guideStep) === guideStep &&
+              (guideActive || audio.playing),
+          ),
+        ),
+      );
+    const start = banner.querySelector<HTMLElement>(
+      '[data-action="demo-start"],[data-action="demo-stop"]',
+    );
+    if (start) {
+      start.dataset.action = guideActive ? "demo-stop" : "demo-start";
+      const text = t(guideActive ? "Stop tour" : "Start guided demo");
+      if (start.textContent !== text) start.textContent = text;
+    }
+    const descriptions =
+      language === "tr"
+        ? [
+            "Nota imleci, piyano tuşları ve piyano rulosu aynı çalmayı takip eder.",
+            "1–4. ölçüler aralıksız tekrar eder. Farklı bir döngü için ilk ve son ölçüyü seçin.",
+            "Metronom ölçü başını vurgular; kendi ses kaydırıcısından ayarlayın.",
+            "Klavye paneli aşağıda: tuşlarla çalın, Z/X veya −/+ ile oktavı değiştirin.",
+          ]
+        : [
+            "The score cursor, piano keys and falling notes follow the same playback.",
+            "Measures 1–4 repeat without restarting audio. Select two measures to choose another loop.",
+            "The metronome accents each bar. Adjust its own volume slider.",
+            "Use the keyboard panel below: play note keys and change octave with Z/X or −/+.",
+          ];
+    const caption = banner.querySelector("#demo-caption");
+    const text =
+      guideSeconds >= 56
+        ? language === "tr"
+          ? "Tur tamamlandı. Dilediğiniz gibi çalışmaya devam edin."
+          : "Tour complete. Keep exploring at your own pace."
+        : descriptions[guideStep];
+    if (caption && caption.textContent !== text) caption.textContent = text;
+  }
+  document
+    .querySelector("#practice-loop")
+    ?.classList.toggle("tour-focus", guideActive && guideStep === 1);
+  document
+    .querySelector("#practice-metronome")
+    ?.classList.toggle("tour-focus", guideActive && guideStep === 2);
+  document
+    .querySelector(".keyboard-controls")
+    ?.classList.toggle("tour-focus", guideActive && guideStep === 3);
+  if (timeline !== pulseTimeline) {
+    pulseTimeline = timeline;
+    pulseCache = timeline ? metronomePulses(timeline) : [];
+  }
+  let pulse = pulseCache[0];
+  for (const p of pulseCache) {
+    if (p.beat > beat + 1e-6) break;
+    pulse = p;
+  }
+  const dots = document.querySelector("#metro-pulses");
+  if (dots && pulse) {
+    const count = Math.min(16, pulse.count);
+    if (dots.children.length !== count)
+      dots.innerHTML = Array.from({ length: count }, () => "<i></i>").join("");
+    Array.from(dots.children).forEach((dot, i) =>
+      dot.classList.toggle(
+        "current",
+        audio.metronome && audio.playing && pulse.index === i,
+      ),
+    );
+  }
+  const counter = document.querySelector("#metro-count");
+  if (counter && pulse) {
+    const text = `${pulse.index + 1}/${pulse.count}`;
+    if (counter.textContent !== text) counter.textContent = text;
+  }
+}
+
 function frame() {
+  practiceFrame(audio.now());
   piano?.setLive(live.pitches());
   const beat = audio.now();
   if (piano) {
@@ -1351,7 +1944,20 @@ if (import.meta.env.PROD && "serviceWorker" in navigator)
     })
     .catch((err) => console.warn("Offline install:", err));
 void refreshLibrary()
-  .then(render)
+  .then(async () => {
+    if (!localStorage.getItem(DEMO_SEEN)) {
+      const empty = library.length === 0;
+      if (empty) {
+        const p = await demoProject("basic");
+        localStorage.setItem(DEMO_SEEN, "seen");
+        await refreshLibrary();
+        await openProject(p);
+        return;
+      }
+      localStorage.setItem(DEMO_SEEN, "seen");
+    }
+    render();
+  })
   .catch((err) => {
     render();
     toast(`Library: ${err.message}`, true);

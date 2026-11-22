@@ -11,7 +11,7 @@
 </p>
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-b6ef72?style=flat-square"></a>
-  <img alt="Version 0.4.0" src="https://img.shields.io/badge/version-0.4.0-80cae9?style=flat-square">
+  <img alt="Version 0.5.0" src="https://img.shields.io/badge/version-0.5.0-80cae9?style=flat-square">
   <img alt="Local processing" src="https://img.shields.io/badge/processing-on_device-b6ef72?style=flat-square">
 </p>
 
@@ -34,6 +34,16 @@ modScore turns printed sheet music into notation you can hear, see and practice.
 
 The **Original test score (CC0)** is included for exploring playback. It opens reference MusicXML and is explicitly labeled; it is not presented as a recognition result.
 
+## New in 0.5: your music, ready to play
+
+First launch opens **Basic Music — Baran Gulesen**, a 32-bar automatic transcription included with the composer's permission. Choose **Start guided demo** to see the score, falling notes and piano together, followed by measure looping, metronome and keyboard controls. A second **Ode to Joy** demo offers a 32-bar Beethoven-themed piano study. Existing libraries are preserved; no audio autoplays. Demo music rights are documented [separately](public/demos/LICENSE.md).
+
+**Audio & YouTube** turns a local recording into editable piano notation and MIDI using Spotify Basic Pitch on your device. Local files need no server. YouTube links use the optional free `npm run youtube:helper` process on your computer, since a static browser app cannot directly read YouTube streams. See the [simple setup and transcription guide](docs/AUDIO_YOUTUBE.md) and [0.5 verification report](docs/PRACTICE_AUDIO_05_2026-11-22.md). No paid API is used; transcription is an estimate and must be reviewed.
+
+Loops now use a continuous audio clock across turns. Select a range by clicking its first and last measure or entering numbers. The metronome follows the score's time signature, accents bar starts and has its own volume. Virtual piano controls collect octave buttons, Z/X shortcuts and a compact expandable keyboard diagram in one place.
+
+![Basic Music demo in modScore](docs/validation/demo-desktop.png)
+
 ## Recognition improvements in 0.4
 
 Grand-staff recognition now preserves a piano part when the lower staff uses a treble or C clef. An image verification pass also restores clipped staff regions when all five printed lines and the spaces between them remain visible. The model then reads the recovered image area. Image-derived barline disagreements are review notices; they do not insert barlines or guess tuplets. Dense tuplet passages, backwards model positions and decoder truncation receive review notices.
@@ -47,7 +57,7 @@ See the [0.4 recognition report](docs/RECOGNITION_04_2026-11-22.md) for measured
 | Area | Capabilities |
 | --- | --- |
 | Recognition | Local image/PDF OMR in a Worker; CPU WebAssembly; multiple pages; completed-page checkpoints |
-| Import | Images, PDF page selection and password entry, uncompressed MusicXML, MIDI, project backups |
+| Import | Images, PDF page selection and password entry, uncompressed MusicXML, MIDI, project backups; local audio and optional YouTube helper |
 | Review | Original/reconstruction comparison, note pitch/onset/duration, explicit ties, saved tempo, structural timing notices |
 | Playback | Sampled instruments, tempo/speed, transpose, loops, seeking, metronome, staff/voice mute and solo |
 | Virtual piano | 88 keys, touch/multitouch, computer keys, falling notes, compatible Web MIDI input |
@@ -120,6 +130,7 @@ Open **http://localhost:4173**. The production build enables the service worker.
 | --- | --- |
 | TypeScript + Vite | Application UI, strict type checking and static production build |
 | Partsong / homr-rs / homr | Staff detection, perspective dewarping and optical music recognition |
+| Spotify Basic Pitch (Apache-2.0) | Local audio-to-note inference and editable piano transcription |
 | ONNX Runtime Web + WebAssembly | Local neural inference; one CPU WASM thread to bound memory |
 | PDF.js 6.4.299 legacy | Local PDF rendering with matching Worker, polyfills, CMaps and fonts |
 | OpenSheetMusicDisplay 2.2.0 / VexFlow | MusicXML engraving and playback cursor |
@@ -130,7 +141,7 @@ Open **http://localhost:4173**. The production build enables the service worker.
 | Playwright | Browser, import, real inference, playback and offline verification |
 | Node.js + fflate | Development/build tools and verified first-run asset setup |
 
-Versions and package integrity are pinned in `package-lock.json`, [UPSTREAM.lock.json](docs/UPSTREAM.lock.json) and [PDFJS.lock.json](docs/PDFJS.lock.json). Ordinary use has no backend. Additional sample banks come from a pinned GitHub revision; no score data is sent with those requests.
+Versions and package integrity are pinned in `package-lock.json`, [UPSTREAM.lock.json](docs/UPSTREAM.lock.json), [PDFJS.lock.json](docs/PDFJS.lock.json) and [AUDIO.lock.json](docs/AUDIO.lock.json). Ordinary use has no backend. Additional sample banks come from a pinned GitHub revision; no score data is sent with those requests.
 
 ## Deploy
 
@@ -163,7 +174,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md), [ARCHITECTURE.md](ARCHITECTURE.md) and 
 
 **AGPL-3.0-only.** See [LICENSE](LICENSE). Deployed versions expose a corresponding-source download in Settings and at `source.tar.gz`. Preserve source availability, attribution and all third-party licenses when redistributing.
 
-modScore builds on **Partsong**, **homr-rs**, **homr**, **ONNX Runtime**, **PDF.js**, **OpenSheetMusicDisplay**, **VexFlow**, **Tone.js MIDI** and the **FluidR3** samples by Frank Wen, converted by Benjamin Gleitzman. Sample and bundled-library licenses are separate from the application license. Model training-data provenance caveats remain documented; this project does not represent a commercial licensing clearance. Read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+modScore builds on **Partsong**, **homr-rs**, **homr**, **ONNX Runtime**, **PDF.js**, **OpenSheetMusicDisplay**, **VexFlow**, **Spotify Basic Pitch**, **Tone.js MIDI** and the **FluidR3** samples by Frank Wen, converted by Benjamin Gleitzman. Sample and bundled-library licenses are separate from the application license. Model training-data provenance caveats remain documented; this project does not represent a commercial licensing clearance. Read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Further reading: [known limitations](docs/LIMITATIONS.md) · [changelog](docs/CHANGELOG.md) · [recognition report](docs/RECOGNITION_REPORT.md) · [PDF/import review](docs/IMPORT_REVIEW_2026-11-22.md) · [multi-page and live input](docs/MULTIPAGE_LIVE_2026-11-22.md).
 

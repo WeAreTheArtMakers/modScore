@@ -63,6 +63,7 @@ execFileSync("tar", [
   "--exclude=.git",
   "--exclude=public/recognition",
   "--exclude=public/lib",
+  "--exclude=public/audio-pitch",
   "--exclude=vendor/partsong/models",
   "--exclude=vendor/pdfjs-legacy",
   "--exclude=vendor/partsong/lib",

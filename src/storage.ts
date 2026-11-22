@@ -8,6 +8,7 @@ export interface Project {
   updated: number;
   reviewed: boolean;
   recognizedPages?: string[];
+  reference?: { url: string; title: string };
 }
 let opening: Promise<IDBDatabase> | undefined;
 function database() {
@@ -108,6 +109,17 @@ export function validateProject(value: unknown): Project {
     updated: Date.now(),
     reviewed: !!v.reviewed,
     recognizedPages: v.recognizedPages ? [...v.recognizedPages] : undefined,
+    reference:
+      v.reference &&
+      typeof v.reference.url === "string" &&
+      /^https:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}$/.test(
+        v.reference.url,
+      )
+        ? {
+            url: v.reference.url,
+            title: String(v.reference.title || "YouTube source").slice(0, 200),
+          }
+        : undefined,
   };
 }
 export async function storageStatus() {

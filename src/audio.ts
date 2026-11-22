@@ -1,3 +1,4 @@
+import { TransportClock, metronomePulses, type Pulse } from "./transport-clock";
 import {
   beatToSeconds,
   secondsToBeat,
@@ -18,23 +19,57 @@ export class AudioEngine {
   speed = 1;
   transpose = 0;
   volume = 0.65;
-  metronome = false;
+  private _metronome = false;
+  metronomeVolume = 0.35;
+  private metronomeGain?: GainNode;
+  private clickSources = new Set<AudioScheduledSourceNode>();
+  get metronome() {
+    return this._metronome;
+  }
+  set metronome(value: boolean) {
+    if (value === this._metronome) return;
+    this._metronome = value;
+    for (const key of this.scheduled.keys())
+      if (key.startsWith("click:")) this.scheduled.delete(key);
+    if (!value)
+      for (const source of this.clickSources) {
+        try {
+          source.stop();
+        } catch {}
+      }
+  }
+  setMetronomeVolume(value: number) {
+    if (!Number.isFinite(value)) return;
+    this.metronomeVolume = Math.max(0, Math.min(1, value));
+    if (this.metronomeGain && this.context)
+      this.metronomeGain.gain.setTargetAtTime(
+        this.metronomeVolume,
+        this.context.currentTime,
+        0.01,
+      );
+  }
   timeline?: Timeline;
   voices = new Map<string, VoiceState>();
   loop?: [number, number];
   private timer?: number;
-  private anchor = 0;
-  private origin = 0;
-  private scheduled = new Set<string>();
+  private clock?: TransportClock;
+  private pulses: Pulse[] = [];
+  private playRequest = 0;
+  private preparing?: Promise<void>;
+  loopTurns = 0;
+  private scheduled = new Map<string, number>();
   private sources = new Set<AudioScheduledSourceNode>();
   private gains = new Map<AudioScheduledSourceNode, GainNode>();
-  private clickBeat = -1;
+
   async activate() {
     this.context ??= new AudioContext({ latencyHint: "interactive" });
     if (!this.master) {
       this.master = this.context.createGain();
       this.master.gain.value = this.volume;
       this.master.connect(this.context.destination);
+      this.metronomeGain = this.context.createGain();
+      this.metronomeGain.gain.value = this.metronomeVolume;
+      this.metronomeGain.connect(this.context.destination);
       this.context.addEventListener("statechange", () => {
         if (this.playing && this.context?.state !== "running") this.pause();
       });
@@ -69,36 +104,44 @@ export class AudioEngine {
   }
   now() {
     if (!this.playing || !this.context || !this.timeline) return this.position;
-    const sec = this.origin + this.context.currentTime - this.anchor;
-    return secondsToBeat(sec, this.timeline.tempos, this.speed);
+    return this.clock?.beatAt(this.context.currentTime) ?? this.position;
   }
   async play() {
+    this.pause();
+    const request = ++this.playRequest;
     if (!this.timeline?.notes.length)
       throw Error("Open a score containing playable notes first.");
     await this.activate();
-    await this.prepare();
+    this.preparing ??= this.prepare().finally(() => {
+      this.preparing = undefined;
+    });
+    await this.preparing;
+    if (request !== this.playRequest) return;
     if (this.position >= this.timeline.duration) this.position = 0;
     if (
       this.loop &&
       (this.position < this.loop[0] || this.position >= this.loop[1])
     )
       this.position = this.loop[0];
-    this.origin = beatToSeconds(
+    this.clock = new TransportClock(
+      this.timeline,
       this.position,
-      this.timeline.tempos,
       this.speed,
+      this.context!.currentTime + 0.04,
+      this.loop,
     );
-    this.anchor = this.context!.currentTime + 0.04;
+    this.pulses = metronomePulses(this.timeline);
+    this.loopTurns = 0;
     this.scheduled.clear();
-    this.clickBeat = -1;
     this.playing = true;
     this.tick();
     this.timer = window.setInterval(() => this.tick(), 25);
   }
   pause() {
+    this.playRequest++;
     if (this.playing) this.position = this.now();
     this.playing = false;
-    if (this.timer) clearInterval(this.timer);
+    if (this.timer !== undefined) clearInterval(this.timer);
     this.timer = undefined;
     for (const s of this.sources) {
       try {
@@ -106,6 +149,7 @@ export class AudioEngine {
       } catch {}
     }
     this.sources.clear();
+    this.clickSources.clear();
     for (const g of this.gains.values()) g.disconnect();
     this.gains.clear();
     this.scheduled.clear();
@@ -131,73 +175,78 @@ export class AudioEngine {
     if (this.master)
       this.master.gain.setTargetAtTime(value, this.context!.currentTime, 0.01);
   }
+  setLoop(range?: [number, number]) {
+    if (
+      range &&
+      (!this.timeline ||
+        !range.every(Number.isFinite) ||
+        range[0] < 0 ||
+        range[1] > this.timeline.duration + 1e-6 ||
+        range[1] <= range[0])
+    )
+      throw Error("Choose a valid measure loop.");
+    const was = this.playing;
+    this.pause();
+    this.loop = range;
+    if (range && (this.position < range[0] || this.position >= range[1]))
+      this.position = range[0];
+    if (was) void this.play().catch(console.error);
+  }
   private tick() {
-    if (!this.playing || !this.timeline || !this.context) return;
-    const beat = this.now();
-    const end = this.loop?.[1] ?? this.timeline.duration;
-    if (beat >= end) {
-      if (this.loop) {
-        this.seek(this.loop[0]);
-      } else {
-        this.pause();
-        this.position = this.timeline.duration;
-      }
+    if (!this.playing || !this.timeline || !this.context || !this.clock) return;
+    const now = this.context.currentTime,
+      horizon = now + 0.12,
+      clock = this.clock;
+    if (!this.loop && now >= clock.firstEnd) {
+      this.playing = false;
+      this.position = this.timeline.duration;
+      if (this.timer !== undefined) clearInterval(this.timer);
+      this.timer = undefined;
       return;
     }
-    const horizon = this.context.currentTime + 0.12;
-    for (const n of this.timeline.notes) {
-      const pitch = n.pitch + this.transpose;
-      if (
-        n.beat >= end ||
-        n.beat + n.duration <= this.position ||
-        !this.audible(n) ||
-        pitch < 0 ||
-        pitch > 127 ||
-        this.scheduled.has(n.id)
-      )
-        continue;
-      const when =
-        this.anchor +
-        beatToSeconds(
-          Math.max(n.beat, this.position),
-          this.timeline.tempos,
-          this.speed,
-        ) -
-        this.origin;
-      if (when > horizon) break;
-      const until =
-        this.anchor +
-        beatToSeconds(
-          Math.min(n.beat + n.duration, end),
-          this.timeline.tempos,
-          this.speed,
-        ) -
-        this.origin;
-      if (until > this.context.currentTime)
-        this.note(
-          pitch,
-          Math.max(when, this.context.currentTime),
-          until - Math.max(when, this.context.currentTime),
-          n.velocity,
-          this.timeline.tracks.find((t) => t.id === n.track)?.drums,
-        );
-      this.scheduled.add(n.id);
-    }
-    if (this.metronome) {
-      for (
-        let b = Math.max(0, Math.ceil(this.position), this.clickBeat + 1);
-        ;
-        b++
-      ) {
-        if (b >= end) break;
-        const when =
-          this.anchor +
-          beatToSeconds(b, this.timeline.tempos, this.speed) -
-          this.origin;
+    const current = clock.cycleAt(now);
+    this.loopTurns = current;
+    for (const [key, cycle] of this.scheduled)
+      if (cycle < current - 1) this.scheduled.delete(key);
+    for (const cycle of clock.cycles(now, horizon)) {
+      const from = clock.from(cycle),
+        end = clock.end;
+      for (const n of this.timeline.notes) {
+        if (n.beat >= end) break;
+        const key = `note:${cycle}:${n.id}`,
+          pitch = n.pitch + this.transpose;
+        if (
+          n.beat + n.duration <= from ||
+          !this.audible(n) ||
+          pitch < 0 ||
+          pitch > 127 ||
+          this.scheduled.has(key)
+        )
+          continue;
+        const when = clock.when(Math.max(n.beat, from), cycle);
         if (when > horizon) break;
-        this.clickBeat = b;
-        if (when >= this.context.currentTime) this.click(when, b % 4 === 0);
+        const until = clock.when(Math.min(n.beat + n.duration, end), cycle);
+        if (until > now)
+          this.note(
+            pitch,
+            Math.max(when, now),
+            until - Math.max(when, now),
+            n.velocity,
+            this.timeline.tracks.find((t) => t.id === n.track)?.drums,
+          );
+        this.scheduled.set(key, cycle);
       }
+      if (this.metronome)
+        for (const pulse of this.pulses) {
+          if (pulse.beat < from - 1e-8 || pulse.beat >= end) continue;
+          const key = `click:${cycle}:${pulse.beat}`,
+            when = clock.when(pulse.beat, cycle);
+          if (when > horizon) break;
+          if (!this.scheduled.has(key)) {
+            if (when >= now) this.click(when, pulse.accent);
+            this.scheduled.set(key, cycle);
+          }
+        }
     }
   }
   private track(source: AudioScheduledSourceNode, gain: GainNode) {
@@ -205,6 +254,7 @@ export class AudioEngine {
     this.gains.set(source, gain);
     source.onended = () => {
       this.sources.delete(source);
+      this.clickSources.delete(source);
       this.gains.delete(source);
       source.disconnect();
       gain.disconnect();
@@ -246,9 +296,10 @@ export class AudioEngine {
     const o = this.context!.createOscillator(),
       g = this.context!.createGain();
     o.frequency.value = accent ? 1500 : 1000;
-    g.gain.setValueAtTime(0.12, when);
+    g.gain.setValueAtTime(accent ? 0.22 : 0.14, when);
     g.gain.exponentialRampToValueAtTime(0.001, when + 0.04);
-    o.connect(g).connect(this.master!);
+    o.connect(g).connect(this.metronomeGain!);
+    this.clickSources.add(o);
     o.start(when);
     o.stop(when + 0.05);
     this.track(o, g);

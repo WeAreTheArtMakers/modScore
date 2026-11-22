@@ -12,7 +12,8 @@ for (const path of ["omr", "lib", "models"]) {
 }
 const lock = JSON.parse(await readFile("docs/UPSTREAM.lock.json", "utf8"));
 const pdfLock = JSON.parse(await readFile("docs/PDFJS.lock.json", "utf8"));
-for (const file of [...lock.files, ...pdfLock.files]) {
+const audioLock = JSON.parse(await readFile("docs/AUDIO.lock.json", "utf8"));
+for (const file of [...lock.files, ...pdfLock.files, ...audioLock.files]) {
   const data = await readFile(file.path);
   const actual = createHash("sha256").update(data).digest("hex");
   if (actual !== file.sha256)
@@ -69,3 +70,6 @@ await cp(
 console.log(
   "Verified pinned assets; prepared local OMR and notation/PDF libraries.",
 );
+
+await mkdir("public/audio-pitch", {recursive:true});
+await cp("vendor/basic-pitch/nmp.onnx","public/audio-pitch/nmp.onnx");

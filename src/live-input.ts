@@ -80,6 +80,11 @@ export class LiveInput {
   pitches() {
     return [...this.active.values()].map((n) => n.pitch);
   }
+  changeOctave(delta: number) {
+    this.panic();
+    this.octave = Math.max(1, Math.min(7, this.octave + delta));
+    this.onchange();
+  }
   private down = (e: KeyboardEvent) => {
     if (
       !this.enabled ||
@@ -94,12 +99,8 @@ export class LiveInput {
     if (target.closest('input,textarea,select,[contenteditable="true"],dialog'))
       return;
     if (e.code === "KeyZ" || e.code === "KeyX") {
-      this.panic();
-      this.octave = Math.max(
-        1,
-        Math.min(7, this.octave + (e.code === "KeyX" ? 1 : -1)),
-      );
-      this.onchange();
+      e.preventDefault();
+      this.changeOctave(e.code === "KeyX" ? 1 : -1);
       return;
     }
     const step = typingNotes[e.code];

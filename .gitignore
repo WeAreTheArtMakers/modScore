@@ -18,3 +18,5 @@ vendor/pdfjs-legacy/
 .env.*
 !.env.example
 *.log
+
+public/audio-pitch/

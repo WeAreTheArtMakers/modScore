@@ -1,6 +1,6 @@
 # modScore architecture
 
-modScore is one statically hosted browser application. There is no server API, account layer, cloud database, telemetry or upload path. TypeScript and browser APIs provide the application; the heavy OMR code is reused rather than reimplemented.
+modScore is one statically hosted browser application. There is no hosted server API, account layer, cloud database, telemetry or score upload path. An optional loopback-only Node helper downloads public YouTube audio when explicitly run by the user; inference remains in the browser. TypeScript and browser APIs provide the application; the heavy OMR code is reused rather than reimplemented.
 
 ## Data flow
 
@@ -91,3 +91,13 @@ Source-page association is stored in the standard `miscellaneous-field` metadata
 
 
 The active SIMD reader variants can be rebuilt with Rust 1.96 and the wasm32 target (`--ignore-rust-version` applies only to WASM; homr-rs’s 1.98 minimum comes from AArch64 NEON intrinsics). Use `bash vendor/partsong/scripts/build-omr.sh`; update/verify artifact hashes after an intentional reader change. `MODSCORE_BUILD_THREADS=1` additionally rebuilds optional shared-memory variants using the required nightly/build-std toolchain. Ordinary app setup uses the included binaries and needs no Rust.
+
+## Audio transcription and practice (0.5)
+
+`audio-transcription.ts` decodes a bounded audio excerpt and resamples to mono 22,050 Hz. `audio-worker.ts` runs the pinned Basic Pitch ONNX model with overlapping 43,844-sample windows, discards edge frames and applies upstream note extraction. Cancellation terminates the Worker. `piano-score.ts` quantizes events to a 1/8-beat grid, partitions overlapping intervals into independent voices, emits equal-interval chords and necessary ties on a complete grand staff and carries velocities. This estimated 4/4 MusicXML enters the same parser, editor, sampled playback and export path as imported scores. Original audio and canonical source links stay in IndexedDB projects.
+
+`transport-clock.ts` maps an anchored AudioContext clock over tempo changes and loop cycles. The scheduler looks ahead across a loop boundary and deduplicates note/click events by cycle; it does not restart sample loading at each turn. Meter-derived pulses use dotted quarters for compound 6/8, 9/8 and 12/8. Metronome gain connects independently of the instrument gain. Pending Play calls are generation-guarded so Stop or a more recent Play cancels them.
+
+`demos.ts` seeds the composer-authorized Basic Music only for an empty first-run library. Existing demo projects are reused, preserving edits. A first-run local preference prevents deleted demos from silently returning. The guided tour starts only on a user gesture; its decorative motion respects reduced-motion settings.
+
+The optional `scripts/youtube-helper.mjs` is a loopback HTTP adapter with explicit origin/URL validation and bounded temporary downloads. It has no shell interpolation, cookie/login support or remote transcription endpoint. See `docs/AUDIO_YOUTUBE.md` and the model/music notices.

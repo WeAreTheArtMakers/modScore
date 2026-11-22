@@ -6,7 +6,11 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: "list",
-  use: { baseURL: "http://localhost:5173", headless: true },
+  use: {
+    baseURL: "http://localhost:5173",
+    headless: true,
+    storageState: "tests/fixtures/returning-user.json",
+  },
   projects: [
     { name: "chrome", use: { browserName: "chromium", channel: "chrome" } },
     { name: "webkit", use: { browserName: "webkit" } },

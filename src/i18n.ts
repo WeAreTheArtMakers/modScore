@@ -1,4 +1,11 @@
 export const tr: Record<string, string> = {
+  "Audio & YouTube": "Ses ve YouTube",
+  "Create piano score": "Piyano notası oluştur",
+  "Try Basic Music": "Basic Music'i aç",
+  "Try Beethoven": "Beethoven'ı aç",
+  "Start guided demo": "Rehberli demoyu başlat",
+  "Stop tour": "Turu durdur",
+  "Score & piano": "Nota ve piyano",
   "Connect MIDI": "MIDI bağla",
   "Audio outputs": "Ses çıkışlarını göster",
   "Test audio": "Sesi dene",

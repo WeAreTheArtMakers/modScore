@@ -1,0 +1,18 @@
+{
+  "modelRevision": "fa5997af0a8210982619003269994a1be25eddf3",
+  "noteCreationRevision": "16d4c6a68e2c070726ba7c26a64c13eab4a434c4",
+  "npm": "@spotify/basic-pitch@1.0.1",
+  "npmIntegrity": "sha512-SAxiFi9ZnyhGdhWEOS9YVhdunZiKzI3I5zOccZzDzQRr4s00Ii9lphqlPMMfby3iYa7TSupB2g8yuu1kJ6gL+Q==",
+  "files": [
+    {
+      "path": "vendor/basic-pitch/nmp.onnx",
+      "bytes": 230444,
+      "sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec"
+    },
+    {
+      "path": "vendor/basic-pitch/toMidi.js",
+      "bytes": 13069,
+      "sha256": "d4424e6c47edae4e841f42767444b21b0ac4cb4c021b63dff4707b4448bca42b"
+    }
+  ]
+}
