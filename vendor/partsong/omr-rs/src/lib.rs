@@ -13,6 +13,7 @@
 //! staffs found").
 
 pub mod layout;
+pub mod barlines;
 pub mod staffs;
 
 use homr_rs::braces::MultiStaff;
@@ -39,6 +40,7 @@ struct Pending {
     key: Key,
     grand: bool,
     mapping: StaffMapping,
+    barlines: Vec<f64>,
     boxes: [[f64; 4]; 2], // upper, lower: where the staff is on the input image
 }
 
@@ -55,6 +57,8 @@ pub struct Page {
     input: Vec<f32>,
     input_dims: (usize, usize),
     vocab: Vocab,
+    barline_notices: usize,
+    staff_repairs: usize,
 }
 
 impl Reader for Page {
@@ -78,7 +82,8 @@ impl Reader for Page {
         let boxes = [bx(upper), bx(lower)];
         self.input = to_model_input(&prepared.canvas);
         self.input_dims = (prepared.canvas.h, prepared.canvas.w);
-        self.pending = Some(Pending { key: k, grand, mapping: prepared.mapping, boxes });
+        let barlines = barlines::connected_barlines(&self.gray, staff);
+        self.pending = Some(Pending { key: k, grand, mapping: prepared.mapping, boxes, barlines });
         Err(Stop::Need)
     }
     fn to_input(&self, p: (f64, f64)) -> (f64, f64) {
@@ -115,6 +120,8 @@ impl Page {
             input: vec![],
             input_dims: (0, 0),
             vocab: Vocab::default(),
+            barline_notices: 0,
+            staff_repairs: 0,
         }
     }
 
@@ -137,6 +144,18 @@ impl Page {
         // Not homr's repair_systems: Partsong's own layout rules group the
         // systems (repair_systems split Of a Rose's pages 2, 4, 8 and 10 wrongly).
         self.multi = analyse_page(&pm)?;
+        for system in &mut self.multi {
+            for (staff,grand) in system.staffs.iter_mut().zip(&system.grand) {
+                if !grand {continue;}
+                if let Some((upper,lower))=staff.halves.as_deref() {
+                    let a=barlines::restore_staff_extent(&self.gray,upper,lower);
+                    let b=barlines::restore_staff_extent(&self.gray,lower,upper);
+                    if a.min_x<upper.min_x || a.max_x>upper.max_x || b.min_x<lower.min_x || b.max_x>lower.max_x {
+                        if let Ok(merged)=homr_rs::braces::merge_staffs(&a,&b) { *staff=merged; self.staff_repairs+=1; }
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
@@ -215,6 +234,11 @@ impl Page {
                 let b = p.boxes[is_lower(&s.position) as usize];
                 s.extra = b.iter().map(|v| format!("{}", v.round_ties_even() as i64)).collect();
             }
+        }
+        // Image barline counts are a review signal, not an automatic rewrite:
+        // cross-staff chord stems and displaced attention can imitate boundaries.
+        if barlines::missing_boundary_budget(p.barlines.len(), &symbols) > 0 {
+            self.barline_notices += 1;
         }
         self.read.insert(p.key, symbols);
     }
@@ -359,4 +383,15 @@ pub unsafe extern "C" fn staff_result(tokens: *const i32, n_tokens: usize, atten
     let t = std::slice::from_raw_parts(tokens, n_tokens);
     let a = std::slice::from_raw_parts(attention, n_attention);
     PAGE.with(|p| p.borrow_mut().as_mut().unwrap().staff_result(t, a));
+}
+
+/// Number of systems whose image-derived barline count needs review.
+#[no_mangle]
+pub extern "C" fn page_geometry_notices() -> usize {
+    PAGE.with(|p| p.borrow().as_ref().map_or(0, |page| page.barline_notices))
+}
+
+#[no_mangle]
+pub extern "C" fn page_staff_repairs() -> usize {
+    PAGE.with(|p| p.borrow().as_ref().map_or(0, |page| page.staff_repairs))
 }

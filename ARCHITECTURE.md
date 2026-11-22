@@ -80,3 +80,14 @@ AGPL application source, exact vendored recognition code, lockfiles, build scrip
 ## 0.3 additions
 
 `src/live-input.ts` owns keyboard and permission-gated MIDI messages, note release and sustain, forwarding to the existing AudioEngine/sample bank. `src/pdf-selection.ts` owns bounded PDF previews, range validation and ephemeral password dialogs. The MusicXML merger has a conservative page-track fallback for changing part/staff layouts; the renderer consumes a validated XML Document rather than letting OSMD interpret strings as URLs. Completed import pages are checkpointed in the existing IndexedDB store without a new database/schema version.
+
+## 0.4 recognition verification and rhythm editing
+
+The Partsong reader retains a detected grand staff with lower F, G or C clef. `omr-rs/src/barlines.rs` also restores clipped staff grids only when five real dark staff lines and light inter-line spaces are verified throughout the missing region. This prevents the grand-staff intersection from cropping away valid notation. Empty, black/noise-filled and cutaway regions are rejected. The model reads the restored region normally.
+
+Image barline counts are review evidence only. Experiments found that automatic insertion can double-count boundaries when attention drifts, so the released reader never inserts barlines based on that heuristic. The Worker reports recovered staff regions and decoder truncation. Recognition notices are embedded in MusicXML metadata and survive merging.
+
+Source-page association is stored in the standard `miscellaneous-field` metadata element, allowing a local canvas excerpt to show the selected note's approximate model position on the correct original. Structural review flags dense tuplets and backwards positions without treating them as proven errors. Duration edits reconstruct cursor movements, reflow their own staff/voice and raise the integer tick grid when a short value needs it. Pitch-only edits preserve rhythm. Re-recognition uses a new project ID and keeps the earlier version.
+
+
+The active SIMD reader variants can be rebuilt with Rust 1.96 and the wasm32 target (`--ignore-rust-version` applies only to WASM; homr-rs’s 1.98 minimum comes from AArch64 NEON intrinsics). Use `bash vendor/partsong/scripts/build-omr.sh`; update/verify artifact hashes after an intentional reader change. `MODSCORE_BUILD_THREADS=1` additionally rebuilds optional shared-memory variants using the required nightly/build-std toolchain. Ordinary app setup uses the included binaries and needs no Rust.

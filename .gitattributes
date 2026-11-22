@@ -1,0 +1,11 @@
+# Keep checksum-pinned runtime source stable on all platforms.
+* text=auto eol=lf
+*.wasm binary
+*.png binary
+*.pdf binary
+*.jpg binary
+*.zip binary
+*.gz binary
+# Preserve upstream license byte sequences, including original line endings.
+docs/licenses/** -text
+public/licenses/** -text

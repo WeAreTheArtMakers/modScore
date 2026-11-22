@@ -5,9 +5,17 @@
 
 modScore, basılı notaları tarayıcınızda tanıyıp seslendirmenizi ve 88 tuşlu piyano üzerinde takip etmenizi sağlar. Hesap, ücretli servis, reklam veya nota yüklemesi gerekmez. Nota dosyaları cihazınızda işlenir ve tarayıcınızın yerel kitaplığında saklanır.
 
-**Geliştirme sürümü 0.3.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
+**Geliştirme sürümü 0.4.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
 
 ![modScore ve projeyle gelen özgün CC0 çalışma notası](docs/preview.png)
+
+## 0.4 ile iyileşenler
+
+Alt portede sol veya do anahtarı bulunan piyano sistemleri artık ayrı enstrümanlara bölünmüyor. Yoğun pasajlarda kırpılmış porte bölgeleri, beş gerçek çizgi ve aralarındaki boşluklar görüntüde doğrulanırsa geri kazanılıyor; model bu alanı yeniden okuyabiliyor. Ölçü çizgisi uyuşmazlıkları inceleme uyarısıdır; otomatik çizgi eklenmez veya üçleme tahmin edilmez.
+
+**Review notes** içinde seçili notanın yaklaşık model konumunu büyüterek inceleyebilirsiniz. 64’lük/128’lik notalar ve kısa üçlemeler için süre seçenekleri eklendi. Perde düzeltmeleri mevcut üçlemeyi korur; süre düzeltmesi diğer portenin zamanını değiştirmez. **Score actions → Recognize again (copy)** eski kaydı koruyup yeni motorla tanımaya hazırlanır.
+
+Yoğun pasajlarda yanlış üçleme, nota ve bağ tanıma hataları hâlâ olabilir. İnceleme uyarıları doğruluk puanı değildir. [0.4 teknik raporu](docs/RECOGNITION_04_2026-11-22.md).
 
 ## Kurmadan kullanın
 

@@ -71,6 +71,7 @@ execFileSync("tar", [
   "--exclude=omr-validation",
   "--exclude=public/source.tar.gz",
   ".gitignore",
+  ".gitattributes",
   ".github",
   "CONTRIBUTING.md",
   "SECURITY.md",

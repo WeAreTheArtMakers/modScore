@@ -1,0 +1,25 @@
+Verified from an empty copy of the staged Git source on macOS, Node.js 22.23.0.
+
+added 24 packages, and audited 25 packages in 749ms
+
+8 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+> modscore@0.3.0 setup
+> node scripts/setup.mjs
+
+Downloading vendor/partsong/lib/mp4-muxer@5.2.2/build/mp4-muxer.mjs
+Downloading vendor/partsong/lib/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.mjs
+Downloading vendor/partsong/lib/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.wasm
+Downloading vendor/partsong/lib/onnxruntime-web@1.30.0/dist/ort.webgpu.min.mjs
+Downloading vendor/partsong/lib/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js
+Downloading vendor/partsong/lib/pdfjs-dist@6.4.299/build/pdf.min.mjs
+Downloading vendor/partsong/lib/pdfjs-dist@6.4.299/build/pdf.worker.min.mjs
+Downloading recognition model decoder_pytorch_model_509-2293bba14bfea47d9d28411339362af15fce4c31.onnx…
+Downloading recognition model encoder_pytorch_model_509-2293bba14bfea47d9d28411339362af15fce4c31.onnx…
+Downloading recognition model segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f.onnx…
+Verified PDF.js legacy package downloaded.
+Verified pinned assets; prepared local OMR and notation/PDF libraries.
+modScore is ready. Run npm run dev, then open http://localhost:5173.

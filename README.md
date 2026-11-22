@@ -11,7 +11,7 @@
 </p>
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-b6ef72?style=flat-square"></a>
-  <img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-80cae9?style=flat-square">
+  <img alt="Version 0.4.0" src="https://img.shields.io/badge/version-0.4.0-80cae9?style=flat-square">
   <img alt="Local processing" src="https://img.shields.io/badge/processing-on_device-b6ef72?style=flat-square">
 </p>
 
@@ -33,6 +33,14 @@ modScore turns printed sheet music into notation you can hear, see and practice.
 6. Export a project backup, MusicXML, MIDI, WAV or original files. Export backups regularly; browser storage can be cleared or evicted.
 
 The **Original test score (CC0)** is included for exploring playback. It opens reference MusicXML and is explicitly labeled; it is not presented as a recognition result.
+
+## Recognition improvements in 0.4
+
+Grand-staff recognition now preserves a piano part when the lower staff uses a treble or C clef. An image verification pass also restores clipped staff regions when all five printed lines and the spaces between them remain visible. The model then reads the recovered image area. Image-derived barline disagreements are review notices; they do not insert barlines or guess tuplets. Dense tuplet passages, backwards model positions and decoder truncation receive review notices.
+
+In **Review notes**, open the enlarged source excerpt to inspect the selected note's approximate model location. Rhythm presets include 64th/128th notes and short triplets. Pitch-only changes preserve encoded tuplets; duration edits reflow their own voice and update MusicXML cursor movements without shifting the other staff. **Score actions → Recognize again (copy)** keeps the earlier score and makes a fresh scan with the current engine.
+
+See the [0.4 recognition report](docs/RECOGNITION_04_2026-11-22.md) for measured improvements and remaining errors. No recognition accuracy percentage is claimed for complex repertoire.
 
 ## What you can do
 

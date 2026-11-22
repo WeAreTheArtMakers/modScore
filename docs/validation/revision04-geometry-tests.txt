@@ -1,0 +1,12 @@
+   Compiling partsong-omr v0.1.0 (/Users/bg/Desktop/modScore/vendor/partsong/omr-rs)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.98s
+     Running unittests src/lib.rs (/tmp/modscore-native-tests/x86_64-apple-darwin/debug/deps/partsong_omr-263be0c2ecaf4f67)
+
+running 4 tests
+test barlines::tests::existing_measure_count_blocks_duplicate_lines_despite_bad_attention ... ok
+test barlines::extent_tests::printed_line_evidence_restores_a_fragment_but_does_not_invent_a_hidden_staff ... ok
+test barlines::tests::double_barline_is_one_boundary_and_broken_ambiguous_lines_are_ignored ... ok
+test barlines::tests::distinguishes_connected_barlines_from_aligned_note_stems ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

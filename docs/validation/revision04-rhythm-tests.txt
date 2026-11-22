@@ -1,0 +1,16 @@
+
+Running 9 tests using 1 worker
+
+(node:42870) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chrome] › tests/rhythm-quality.spec.ts:4:1 › pitch-only correction preserves tuplet rhythm, beams and tuplets (448ms)
+  ✓  2 [chrome] › tests/rhythm-quality.spec.ts:14:1 › short duration correction reflows its voice without shifting the other piano staff (296ms)
+  ✓  3 [chrome] › tests/rhythm-quality.spec.ts:25:1 › an explicit short triplet correction exports exact duration and type (232ms)
+  ✓  4 [chrome] › tests/rhythm-quality.spec.ts:35:1 › tied note pitch-only edits do not demand moving the tie (223ms)
+  ✓  5 [chrome] › tests/rhythm-quality.spec.ts:45:1 › recognition notices survive page merging and retain source-page association (224ms)
+  ✓  6 [chrome] › tests/rhythm-quality.spec.ts:58:1 › re-recognition creates a fresh draft and preserves the earlier score (654ms)
+  ✓  7 [chrome] › tests/rhythm-quality.spec.ts:75:1 › real piano OMR preserves one part when the lower staff changes between treble and bass clefs (14.4s)
+  ✓  8 [chrome] › tests/rhythm-quality.spec.ts:92:1 › 128th-note duration raises the tick grid without altering the other staff (319ms)
+  ✓  9 [chrome] › tests/rhythm-quality.spec.ts:101:1 › a fine onset edit rescales durations and offsets without changing other notes (246ms)
+
+  9 passed (18.5s)

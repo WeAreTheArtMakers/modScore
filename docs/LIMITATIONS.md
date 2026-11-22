@@ -1,9 +1,9 @@
-# Known limitations — 0.1
+# Known limitations — 0.4
 
-This is a working end-to-end development release (updated through 0.3), not completion of every item in the original product brief.
+This is a working end-to-end development release (updated through 0.4), not completion of every item in the original product brief.
 
 - Physical iPhone XS / iOS 18 performance, memory, battery behavior, camera capture, Safari installation and audio interruption recovery are unverified. The downloaded desktop WebKit test executable crashes at launch on this host. Chromium mobile emulation does not establish Safari compatibility.
-- Real OMR evaluation currently uses one clean, original, four-bar grand-staff image. It is not a repertoire-wide accuracy benchmark. Recognition errors must be expected with photos, low contrast, skew, crowded systems, extra voices, handwritten notation, unusual clefs, tuplets, repeats and expressive markings. The engine is an upstream experimental port.
+- Public real OMR evaluation uses the original four-bar grand-staff study and a derivative clef-change fixture. A supplied eight-page dense piano score was also investigated privately; its images and XML are excluded from public source. It is not a repertoire-wide accuracy benchmark. Recognition errors must be expected with photos, low contrast, skew, crowded systems, extra voices, handwritten notation, unusual clefs, tuplets, repeats and expressive markings. The engine is an upstream experimental port.
 - The validation image's 19 sustained note events matched exactly, but its printed 96 BPM tempo was omitted. Missing numeric tempo explicitly defaults to 120 with a review warning. Set tempo after checking the original. Text-only tempo expressions are not interpreted.
 - Repeat barlines, first/second endings, D.C., D.S., codas and segnos are displayed but not expanded for playback. Written measure order is used with a warning. Manual measure loops are implemented.
 - Independent onset correction stays within the existing measure. Tied-note onset/duration edits need an external notation editor. Duration edits change subsequent XML cursor timing; check all voices after editing. Arbitrary notation insertion, deletion, enharmonic spelling and a complete notation engraving editor are not implemented.
@@ -19,3 +19,5 @@ This is a working end-to-end development release (updated through 0.3), not comp
 - A self-hosted recognition HTTP service is not implemented. If a physical device proves unable to run the local models, the researched free fallback is homr CPU on the user's own computer, exporting MusicXML for local import. This does not conceal a cloud dependency.
 - Offline storage is browser-managed and may be evicted. Back up projects outside Safari. WAV rendering has a bounded memory budget; long pieces should be exported as MIDI/MusicXML. No arbitrary score usage cap is imposed.
 - GrandStaff training-data provenance and whether dataset licenses carry through to weights remain unresolved upstream. See THIRD_PARTY_NOTICES.md; the project does not assert complete legal clearance for all possible redistribution contexts.
+
+The 0.4 image pass restores clipped staff extents only with five-line and light-gap evidence; ambiguous, skewed and hidden-staff cases remain unchanged. Image barline counts, approximate model positions and tuplet density are review signals. They never trigger automatic barline insertion or rhythm rewriting. False tuplets and missed/incorrect notes remain possible; no new training or general-purpose score repair oracle is claimed.

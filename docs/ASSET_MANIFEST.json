@@ -6,8 +6,8 @@
   },
   {
     "path": "/THIRD_PARTY_NOTICES.md",
-    "bytes": 8211,
-    "sha256": "dac923fe47bc0c8e13bb1857561f9c4db545eb215da70623b4e97fa568afdb11"
+    "bytes": 8686,
+    "sha256": "ac391d38e4c5999341f7cca40ed6b4307b6a257539bfa2e10f559e89848e5e51"
   },
   {
     "path": "/_headers",
@@ -17,17 +17,17 @@
   {
     "path": "/about/index.html",
     "bytes": 12223,
-    "sha256": "057bf4e42ababaa1806de714df30b7e6547a7a4bf545e89ec7462e68798e6982"
+    "sha256": "7c182377950a0686dd4ae613e3821d49462d4d39c423a7f239a4e28c225e425c"
   },
   {
-    "path": "/assets/index-DA7jnblv.js",
-    "bytes": 127833,
-    "sha256": "7fed42fa753a9472fba08a1362ea44c6a0a66808c1c0e3810282414b8053a68a"
+    "path": "/assets/index-CLuEI5vq.js",
+    "bytes": 137988,
+    "sha256": "f741d2036ba5f7664e8f70cee33b1cb8de65096c6259d2921b6e473ca1a62bea"
   },
   {
-    "path": "/assets/index-N0LiftbJ.css",
-    "bytes": 22959,
-    "sha256": "a8730d3e41d1f1db2e81eb2ffcb8f88064728a972d1b0ce9b3b5e2b2b1a87312"
+    "path": "/assets/index-rpLrUEBi.css",
+    "bytes": 23169,
+    "sha256": "46b990b8feadfc1161398ff50ffba809a62a096daa7032901c7478a942ecf7b9"
   },
   {
     "path": "/fixtures/grand-staff.musicxml",
@@ -51,8 +51,8 @@
   },
   {
     "path": "/index.html",
-    "bytes": 1133,
-    "sha256": "b412f61b0a97b71df5e7c69563f6540cacacda62cfd177c328e395c467ff0bb5"
+    "bytes": 1088,
+    "sha256": "d0f56a17c26af0198d0c2a3b77413e4f9e73f09b14df295d0f0687f84924332e"
   },
   {
     "path": "/instruments/acoustic_grand_piano.json",
@@ -1195,6 +1195,11 @@
     "sha256": "4c4ce0705ed1ac25a4ab6bea2b994c51a2d92d079c09d94fb86bd6762a4770be"
   },
   {
+    "path": "/offline-assets.json",
+    "bytes": 12756,
+    "sha256": "ddb0f5079ccc43237b19963d0b10e7f3794fb951db814d89786cbb6e7e5b7e9b"
+  },
+  {
     "path": "/recognition/lib/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.mjs",
     "bytes": 53057,
     "sha256": "3d1c85995364bb643302fc6fd877a0c3ba5ae72401815e0f24828a53d9191e28"
@@ -1226,8 +1231,8 @@
   },
   {
     "path": "/recognition/omr-worker.js",
-    "bytes": 35343,
-    "sha256": "3bc8593a744a174bb309fe6ea7da7ceb11ddfffdecdf2b2002e1bfef5182022e"
+    "bytes": 36028,
+    "sha256": "cfdbfaa83ce99f59a745acc804931f6f88101115025dcac31cfb1f22b2d1ff65"
   },
   {
     "path": "/recognition/omr/encoder_gpu.mjs",
@@ -1256,13 +1261,13 @@
   },
   {
     "path": "/recognition/omr/partsong_omr.wasm",
-    "bytes": 1092712,
-    "sha256": "e9d2750a87d9f4045e858f95cb75714c99689dbaa6c093efe092494efc1e9a89"
+    "bytes": 1071753,
+    "sha256": "dc4ceb9d67a734e7130dbe272cc3385e10fe5741afa622e1866bed94c3cbd2e2"
   },
   {
     "path": "/recognition/omr/partsong_omr_fused.wasm",
-    "bytes": 1096098,
-    "sha256": "685557795f8ccac29cc4142c08fb9c84b55807a4ce0c0420e94e280b7544c4a2"
+    "bytes": 1070766,
+    "sha256": "3cfb0753cd211bd85544effe32ec11e68ccd3d67e4a16d857c2c37c77697cfbd"
   },
   {
     "path": "/recognition/omr/partsong_omr_threads.wasm",
@@ -1275,9 +1280,14 @@
     "sha256": "1bc8b37f1011aaee89844f07bb33f3eb7b56e38473ddfbd96b215626802c449f"
   },
   {
+    "path": "/source.tar.gz",
+    "bytes": 4856813,
+    "sha256": "eee711da809e00d8adbb7c6eba4c99ec9c8518735b8d02b5435978adecf235b7"
+  },
+  {
     "path": "/sw.js",
     "bytes": 3221,
-    "sha256": "5097247bce0ea904500f0d71b128652730360ee300c0c7c70351ec7f1ebac4bd"
+    "sha256": "8288cd19f72439be6c93d12041aaf1930f92bada25f97d3ea254d6a283e6659a"
   },
   {
     "path": "/validate.html",

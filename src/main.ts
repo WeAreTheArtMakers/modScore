@@ -1,3 +1,4 @@
+import { sourceLocation } from "./recognition-review";
 import { assetPath } from "./paths";
 import { LiveInput } from "./live-input";
 import { planImport } from "./imports";
@@ -7,6 +8,7 @@ import "./style.css";
 import { uprightPhoto } from "../vendor/partsong/orient.js";
 import {
   parseMusicXML,
+  xmlDocument,
   activeNotes,
   amendNote,
   amendOnset,
@@ -200,7 +202,7 @@ function reviewPanel() {
   if (!project?.pages.length) return "";
   const rows = reviewEncoding(project.xml),
     issues = rows.filter((r) => r.issues.length);
-  return `<details class="encoding-review"><summary>${language === "tr" ? "Tanıma incelemesi gerekli" : "Recognition needs review"} · ${issues.length} ${language === "tr" ? "yapısal zamanlama uyarısı (doğruluk puanı değil)" : "structural timing notices (not an accuracy score)"}</summary><p>${language === "tr" ? "Bu denetim doğruluk puanı değildir. Bağları, susları, akorları ve metinleri orijinalle karşılaştırın. Otomatik kirişleme yalnızca çizimi düzeltir." : "This is not an accuracy score. Compare ties, rests, chords and text against the original. Automatic beaming only changes engraving."}</p><div class="audit-scroll"><table><thead><tr><th>Part / measure</th><th>Quarter beats</th><th>Encoded ties</th><th>Review</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${e(r.part)} / ${e(r.measure)}</td><td>${r.encoded} / ${r.expected}</td><td>${r.ties}</td><td>${r.issues.map(e).join("<br>") || "No structural mismatch detected; image review required."}</td></tr>`).join("")}</tbody></table></div></details>`;
+  return `<details class="encoding-review"><summary>${language === "tr" ? "Tanıma incelemesi gerekli" : "Recognition needs review"} · ${issues.length} ${language === "tr" ? "yapısal zamanlama uyarısı (doğruluk puanı değil)" : "structural timing notices (not an accuracy score)"}</summary><p>${language === "tr" ? "Bu denetim doğruluk puanı değildir. Bağları, susları, akorları ve metinleri orijinalle karşılaştırın. Otomatik kirişleme yalnızca çizimi düzeltir." : "This is not an accuracy score. Compare ties, rests, chords and text against the original. Automatic beaming only changes engraving."}</p><div class="audit-scroll"><table><thead><tr><th>Part / measure</th><th>Quarter beats</th><th>Encoded ties</th><th>Review</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${e(r.part)} / ${e(r.measure)} <button class="text-button" data-review-note="${timeline?.notes.findIndex(n => n.track === r.part && n.measure === r.index) ?? -1}">${language === "tr" ? "İncele" : "Review"}</button></td><td>${r.encoded} / ${r.expected}</td><td>${r.ties}</td><td>${r.issues.map(e).join("<br>") || "No structural mismatch detected; image review required."}</td></tr>`).join("")}</tbody></table></div></details>`;
 }
 function originalView() {
   return project?.pages.length
@@ -213,11 +215,39 @@ function originalView() {
         .join("")}</div>`
     : `<div class="empty">No original images for this imported score.</div>`;
 }
+async function drawSourceExcerpt() {
+  if (!project || !timeline) return;
+  const note = timeline.notes[Math.min(selectedNote, timeline.notes.length-1)];
+  if (!note) return;
+  const source = xmlDocument(project.xml).querySelectorAll("part > measure > note")[note?.source[0]];
+  const position = source && sourceLocation(source);
+  const pageNumber = timeline.measures[note?.measure]?.page ?? 0;
+  const image = project.pages[pageNumber];
+  const canvas = document.querySelector<HTMLCanvasElement>("#source-canvas");
+  const figure = document.querySelector<HTMLElement>("#source-excerpt");
+  if (!image || !position || !canvas || !figure) return;
+  const bitmap = await createImageBitmap(image);
+  try {
+    if (!canvas.isConnected) return;
+    const unit = (position.box[3] - position.box[1]) / 4;
+    const left = Math.max(0, position.x - 10 * unit), right = Math.min(bitmap.width, position.x + 10 * unit);
+    const top = Math.max(0, position.box[1] - 5 * unit), bottom = Math.min(bitmap.height, position.box[3] + 5 * unit);
+    if (right <= left || bottom <= top) return;
+    const scale = Math.min(3, 900 / (right-left));
+    canvas.width = Math.round((right-left)*scale); canvas.height = Math.round((bottom-top)*scale);
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(bitmap, left, top, right-left, bottom-top, 0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#3770cc"; ctx.lineWidth = 2; ctx.setLineDash([5,5]);
+    const x = (position.x-left)*scale; ctx.strokeRect(Math.max(0,x-unit*scale),0,2*unit*scale,canvas.height);
+    figure.hidden = false;
+    figure.querySelector("figcaption")!.textContent = `Original · page ${pageNumber+1} · approximate model position`;
+  } finally { bitmap.close(); }
+}
 function editor() {
   if (!timeline) return "";
   const n = timeline.notes[Math.min(selectedNote, timeline.notes.length - 1)];
   if (!n) return "<p>No playable notes to edit.</p>";
-  return `<div class="editor"><div><h2>${label("Review notes")}</h2><p class="muted">Compare the original with reconstructed notation. Corrections update playback and MusicXML.</p><label>Note<select id="edit-select">${timeline.notes.map((n, i) => `<option value="${i}" ${i === selectedNote ? "selected" : ""}>Measure ${n.measure + 1} · ${noteName(n.pitch)} · staff ${n.staff} / voice ${e(n.voice)} · beat ${n.beat}</option>`).join("")}</select></label><div class="edit-fields"><label>Score tempo (BPM)<input id="score-tempo" type="number" min="20" max="300" value="${timeline.tempos[0].bpm}"></label><label>Tempo instruction (from original)<input id="tempo-words" placeholder="Slowly, steady tempo"></label>${button("Save score tempo", "save-tempo")}</div><div class="edit-fields"><label>${label("Pitch")}<select id="edit-pitch">${Array.from({ length: 128 }, (_, p) => `<option value="${p}" ${p === n.pitch ? "selected" : ""}>${noteName(p)} · MIDI ${p}</option>`).join("")}</select></label><label>${label("Duration (beats)")}<input id="edit-duration" type="number" min="0.03125" step="0.125" value="${n.duration}"></label><label>${label("Start (beats)")}<input id="edit-onset" type="number" min="0" step="0.125" value="${n.beat}"></label></div><p class="fine">Durations change subsequent timing in the same MusicXML voice. Tied durations/onsets require an external notation editor. Move a leading chord note to move its chord. Onset edits stay inside the original measure. Accidentals are encoded by the selected chromatic pitch.</p><div class="row">${button("Apply correction", "correct", "primary")}${button("Tie to next note", "tie-next")}${button("Remove tie", "untie")}${button("Mark reviewed", "reviewed")}</div></div><div class="review-original">${originalView()}</div></div>`;
+  return `<div class="editor"><div><h2>${label("Review notes")}</h2><p class="muted">Compare the original with reconstructed notation. Corrections update playback and MusicXML.</p><label>Note<select id="edit-select">${timeline.notes.map((n, i) => `<option value="${i}" ${i === selectedNote ? "selected" : ""}>Measure ${n.measure + 1} · ${noteName(n.pitch)} · staff ${n.staff} / voice ${e(n.voice)} · beat ${n.beat}</option>`).join("")}</select></label><div class="edit-fields"><label>Score tempo (BPM)<input id="score-tempo" type="number" min="20" max="300" value="${timeline.tempos[0].bpm}"></label><label>Tempo instruction (from original)<input id="tempo-words" placeholder="Slowly, steady tempo"></label>${button("Save score tempo", "save-tempo")}</div><div class="edit-fields"><label>${label("Pitch")}<select id="edit-pitch">${Array.from({ length: 128 }, (_, p) => `<option value="${p}" ${p === n.pitch ? "selected" : ""}>${noteName(p)} · MIDI ${p}</option>`).join("")}</select></label><label>Rhythm preset<select id="edit-rhythm"><option value="">Keep encoded rhythm</option>${[[4,"Whole"],[2,"Half"],[1,"Quarter"],[.5,"Eighth"],[.25,"16th"],[.125,"32nd"],[.0625,"64th"],[.03125,"128th"],[1/3,"Eighth triplet"],[1/6,"16th triplet"],[1/12,"32nd triplet"]].map(([v,name]) => `<option value="${v}">${name}</option>`).join("")}</select></label><label>${label("Duration (beats)")}<input id="edit-duration" type="number" min="0.00390625" step="any" value="${n.duration}"></label><label>${label("Start (beats)")}<input id="edit-onset" type="number" min="0" step="any" value="${n.beat}"></label></div><p class="fine">Durations change subsequent timing in the same MusicXML voice. Tied durations/onsets require an external notation editor. Move a leading chord note to move its chord. Onset edits stay inside the original measure. Accidentals are encoded by the selected chromatic pitch.</p><div class="row">${button("Apply correction", "correct", "primary")}${button("Tie to next note", "tie-next")}${button("Remove tie", "untie")}${button("Mark reviewed", "reviewed")}</div></div><div class="review-original"><figure id="source-excerpt" hidden><canvas id="source-canvas"></canvas><figcaption></figcaption></figure>${originalView()}</div></div>`;
 }
 function transport() {
   return `<div class="transport"><div class="transport-main"><div class="transport-buttons"><button data-action="restart" class="icon-button" aria-label="${label("Restart")}">${icon("restart")}</button><button data-action="play" id="play" class="play-button" aria-label="${label(audio.playing ? "Pause" : "Play")}">${icon(audio.playing ? "pause" : "play")}</button><button data-action="stop" class="icon-button" aria-label="${label("Stop")}">${icon("stop")}</button></div><output id="clock">0:00 / ${clock(timeline ? beatToSeconds(timeline.duration, timeline.tempos, audio.speed) : 0)}</output><input id="seek" type="range" min="0" max="${timeline?.duration || 1}" step="0.01" value="${audio.position}" aria-label="Seek playback"><label class="tempo-label">${label("Tempo")}<span><input id="tempo" type="number" min="20" max="300" value="${Math.round((timeline?.tempos[0]?.bpm || 120) * audio.speed)}"> BPM</span></label></div><div class="transport-options"><label><input id="follow" type="checkbox" ${follow ? "checked" : ""}>${label("Follow score")}</label><label><input id="metronome" type="checkbox" ${audio.metronome ? "checked" : ""}>${label("Metronome")}</label><label>${label("Loop measures")}<input id="loop-start" type="number" min="1" max="${timeline?.measures.length || 1}" value="1" aria-label="Loop first measure"><span>–</span><input id="loop-end" type="number" min="1" max="${timeline?.measures.length || 1}" value="${timeline?.measures.length || 1}" aria-label="Loop last measure"><input id="loop-on" type="checkbox" ${audio.loop ? "checked" : ""} aria-label="Enable measure loop"></label></div></div>`;
@@ -257,8 +287,9 @@ function render() {
     )
     .join(
       "",
-    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore 0.3 · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}">${e(s)}</button>`).join("")}</div><p class="fine">Project backups preserve images and notation. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
+    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore 0.4 · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}">${e(s)}</button>`).join("")}</div><p class="fine">Project backups preserve images and notation. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
   bind();
+  if (mode === "editor") void drawSourceExcerpt().catch(() => {});
   if (view === "player" || view === "piano") {
     piano = new Piano(document.querySelector("#piano")!, audio);
     piano.zoom(zoom);
@@ -1017,6 +1048,14 @@ function bind() {
         colors[keys.indexOf(n.dataset.color!) % colors.length] = n.value;
       }),
   );
+  app.querySelectorAll<HTMLElement>("[data-review-note]").forEach(node => node.onclick = () => {
+    const index = Number(node.dataset.reviewNote);
+    if (index >= 0) { selectedNote = index; mode = "editor"; render(); }
+  });
+  on("edit-rhythm", "change", (ev) => {
+    const value = (ev.target as HTMLSelectElement).value;
+    if (value) (document.querySelector("#edit-duration") as HTMLInputElement).value = value;
+  });
   on("edit-select", "change", (ev) => {
     selectedNote = Number((ev.target as HTMLSelectElement).value);
     render();
@@ -1038,8 +1077,18 @@ function bind() {
   if (project && view === "player") {
     const menu = document.createElement("details");
     menu.className = "score-actions";
-    menu.innerHTML = `<summary>Score actions</summary><div class="row"><label>Title<input id="rename-title" value="${e(project.title)}"></label>${button("Rename", "rename")}${button("Save", "save")}${button("Delete", "delete", "danger")}</div>`;
+    menu.innerHTML = `<summary>Score actions</summary><div class="row"><label>Title<input id="rename-title" value="${e(project.title)}"></label>${button("Rename", "rename")}${button("Save", "save")}${project.pages.length ? button(language === "tr" ? "Yeniden tanı (kopya)" : "Recognize again (copy)", "rescan") : ""}${button("Delete", "delete", "danger")}</div>`;
     document.querySelector(".player-heading")!.after(menu);
+    menu.querySelector('[data-action="rescan"]')?.addEventListener("click", safe(async () => {
+      if (busy || !project?.pages.length) return;
+      audio.stop(); live.panic();
+      pages = [...project.pages]; originals = [...project.originals];
+      scanId = crypto.randomUUID(); scanName = project.title + " · Re-scan";
+      scanXml = []; pageIndex = 0;
+      status = language === "tr" ? "Yeni motorla tanımaya hazır. Önceki kayıt korunuyor." : "Ready to recognize with the current engine. The previous score is kept.";
+      project = undefined; timeline = undefined; audio.timeline = undefined;
+      await saveImportDraft(); view = "scan"; render();
+    }));
     menu.querySelector('[data-action="rename"]')!.addEventListener(
       "click",
       safe(async () => {

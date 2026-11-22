@@ -1,3 +1,4 @@
+import { verifyRecognition } from "./recognition-review";
 import { assetPath } from "./paths";
 import { choosePdfPages, askPdfPassword } from "./pdf-selection";
 export class Recognizer {
@@ -59,6 +60,7 @@ export class Recognizer {
     });
   }
   async recognize(image: Blob) {
+    this.logs = [];
     await this.init();
     this.onProgress("Finding staffs and correcting their perspective…");
     const layout = await this.request("layout", image);
@@ -67,7 +69,7 @@ export class Recognizer {
     const xml = result.xml as string;
     // Recreate per page so the previous encoder cannot overlap the next segnet.
     this.dispose();
-    return xml;
+    return verifyRecognition(xml, layout, this.logs);
   }
   cancel() {
     this.fail(

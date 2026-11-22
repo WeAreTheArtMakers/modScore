@@ -1,0 +1,12 @@
+{
+  "productionSubpath": "/modScore/",
+  "crossOriginIsolated": false,
+  "notation": true,
+  "sampledPlayback": true,
+  "pdfPageSelection": true,
+  "savedDraftReload": true,
+  "offlineReloadAndPlayback": true,
+  "actualRecognition": true,
+  "errors": [],
+  "failures": []
+}

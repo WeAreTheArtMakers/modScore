@@ -76,8 +76,9 @@ fn is_note_or_rest(s: &Symbol) -> bool {
     s.rhythm.starts_with("note") || s.rhythm.starts_with("rest")
 }
 
-/// _split_false_grand_staffs: a grand staff without a bass clef read below
-/// is read as its two staves.
+/// modScore 2026-11-22: a detected grand staff can legitimately have a
+/// treble or alto/tenor clef below (piano clefs change). Split only when no
+/// lower clef was read; requiring F incorrectly invented simultaneous parts.
 fn split_false_grand_staffs(rows: Vec<Row>, reader: &mut dyn Reader) -> Result<Vec<Row>, Stop> {
     let reg = regions(&rows);
     let mut out = Vec::new();
@@ -93,7 +94,7 @@ fn split_false_grand_staffs(rows: Vec<Row>, reader: &mut dyn Reader) -> Result<V
                         lower = Some(s.rhythm.chars().skip(5).take(1).collect());
                     }
                 }
-                if lower.as_deref() != Some("F") {
+                if !matches!(lower.as_deref(), Some("F" | "G" | "C")) {
                     staffs.push((halves.0.clone(), false));
                     staffs.push((halves.1.clone(), false));
                     continue;

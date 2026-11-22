@@ -1,3 +1,4 @@
+import { sourceLocation } from "./recognition-review";
 import { xmlDocument, parseMusicXML } from "./music";
 /** Structural checks describe encoded music; they never claim image recognition confidence. */
 export function reviewEncoding(xml: string) {
@@ -7,6 +8,8 @@ export function reviewEncoding(xml: string) {
     unit = 4;
   const rows: {
     part: string;
+    index: number;
+    tuplets: number;
     measure: string;
     expected: number;
     encoded: number;
@@ -21,6 +24,7 @@ export function reviewEncoding(xml: string) {
     divisions = 1;
     beats = 4;
     unit = 4;
+    let measureIndex = 0;
     for (const measure of Array.from(part.children).filter(
       (e) => e.tagName === "measure",
     )) {
@@ -88,15 +92,32 @@ export function reviewEncoding(xml: string) {
             `Staff ${staff}: encoded content ends at beat ${covered}.`,
           );
       }
+      const pitched = Array.from(measure.querySelectorAll("note")).filter(n => n.querySelector("pitch"));
+      const tuplets = pitched.filter(n => n.querySelector("time-modification")).length;
+      if (tuplets >= 9 && tuplets > pitched.length / 2)
+        issues.push("Dense tuplet passage: verify printed grouping and short-note values against the original; do not assume the decoded tuplets are correct.");
+      const previousPositions = new Map<string, number>();
+      for (const note of pitched) {
+        const position = sourceLocation(note);
+        if (!position) continue;
+        const key = `${note.querySelector("voice")?.textContent}:${position.box.join(",")}`;
+        const previous = previousPositions.get(key);
+        const unit = (position.box[3] - position.box[1]) / 4;
+        if (previous !== undefined && position.x < previous - 2 * unit)
+          issues.push("Model positions move backwards within a staff: check note order, repeated notes and voice assignment in the source excerpt.");
+        previousPositions.set(key, position.x);
+      }
       rows.push({
         part: part.id,
+        index: measureIndex++,
+        tuplets,
         measure: measure.getAttribute("number") || "",
         expected,
         encoded: end,
         ties: measure.querySelectorAll('tie[type="start"]').length,
         shortNotes: measure.querySelectorAll("note > type").length
           ? Array.from(measure.querySelectorAll("note")).filter((n) =>
-              ["eighth", "16th", "32nd"].includes(
+              ["eighth", "16th", "32nd", "64th", "128th", "256th", "512th", "1024th"].includes(
                 n.querySelector("type")?.textContent || "",
               ),
             ).length

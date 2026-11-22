@@ -32,13 +32,17 @@
     },
     {
       "path": "vendor/partsong/omr/partsong_omr.wasm",
-      "bytes": 1092712,
-      "sha256": "e9d2750a87d9f4045e858f95cb75714c99689dbaa6c093efe092494efc1e9a89"
+      "bytes": 1071753,
+      "sha256": "dc4ceb9d67a734e7130dbe272cc3385e10fe5741afa622e1866bed94c3cbd2e2",
+      "upstreamSha256": "e9d2750a87d9f4045e858f95cb75714c99689dbaa6c093efe092494efc1e9a89",
+      "modification": "modScore 0.4: lower G/C grand-staff clefs, image-verified staff-extent restoration, barline review (no insertion), decoder limit reporting."
     },
     {
       "path": "vendor/partsong/omr/partsong_omr_fused.wasm",
-      "bytes": 1096098,
-      "sha256": "685557795f8ccac29cc4142c08fb9c84b55807a4ce0c0420e94e280b7544c4a2"
+      "bytes": 1070766,
+      "sha256": "3cfb0753cd211bd85544effe32ec11e68ccd3d67e4a16d857c2c37c77697cfbd",
+      "upstreamSha256": "685557795f8ccac29cc4142c08fb9c84b55807a4ce0c0420e94e280b7544c4a2",
+      "modification": "modScore 0.4: lower G/C grand-staff clefs, image-verified staff-extent restoration, barline review (no insertion), decoder limit reporting."
     },
     {
       "path": "vendor/partsong/omr/partsong_omr_threads.wasm",
@@ -102,8 +106,10 @@
     },
     {
       "path": "vendor/partsong/omr-worker.js",
-      "bytes": 34978,
-      "sha256": "c0a3f45d600b2ffb5e8de5145b8c5f7dbb78469d463d528b25805f5c242c8b47"
+      "bytes": 35663,
+      "sha256": "1017d9cc574536d6d6af52af7e7f17ea0d386bfc6f02d769da3fbb0dab620973",
+      "upstreamSha256": "c0a3f45d600b2ffb5e8de5145b8c5f7dbb78469d463d528b25805f5c242c8b47",
+      "modification": "modScore 0.4: lower G/C grand-staff clefs, image-verified staff-extent restoration, barline review (no insertion), decoder limit reporting."
     },
     {
       "path": "vendor/partsong/orient.js",
@@ -115,5 +121,15 @@
       "bytes": 2631621,
       "sha256": "3ecf74e2f674056f1a1b82830b228b5d788e9036afc7eb290adc1fffeea7dca1"
     }
-  ]
+  ],
+  "modscoreReaderBuild": {
+    "rust": "1.96.0 (ac68faa20 2026-05-25)",
+    "target": "wasm32-unknown-unknown",
+    "flags": [
+      "+simd128",
+      "+simd128,+relaxed-simd"
+    ],
+    "cargo": "--locked --release --ignore-rust-version",
+    "reason": "homr-rs minimum 1.98 is for AArch64 NEON intrinsics; wasm32 paths build with 1.96."
+  }
 }

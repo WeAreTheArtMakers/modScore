@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4 — piano layout, image verification and rhythm corrections
+
+- Preserve grand staffs with lower treble/C clefs.
+- Recover clipped staff extents using five-line image evidence; review barline counts and report truncation.
+- Preserve tuplets on pitch edits and reflow the edited voice on duration changes.
+- Add short-note/triplet presets, source excerpts, source-page mapping and safe re-recognition copies.
+- Retain corresponding Rust source, modified binary integrity and regression fixtures.
+
 ## 0.3 — GitHub distribution
 
 - GitHub Pages subpath support for the PWA, recognition workers, PDF resources, samples and offline preparation.

@@ -486,7 +486,9 @@ async function encodeDecode({ rs, model, encoder, image, context, out, gpu }, in
 function steps(rs, out, n, t0) {
   if (!n) throw new Error("the music reader's decoder failed");
   const words = new DataView(rs.memory.buffer, out, n * 32);
-  if (words.getUint32((n - 1) * 32, true) === EOS_TOKEN) n--;
+  const complete = words.getUint32((n - 1) * 32, true) === EOS_TOKEN;
+  if (complete) n--;
+  else if (n >= MAX_SEQ_LEN) post({ type: "log", msg: "REVIEW: Decoder reached its length limit; compare this dense staff with the original." });
   const tokens = new Int32Array(n * 6);
   const attention = new Float32Array(n * 2);
   for (let i = 0; i < n; i++) {
@@ -661,6 +663,10 @@ async function recognise(page, systemsJson, packed) {
     const state = rs.page_step();
     if (state === 0) {
       const xml = message();
+      const restored = rs.page_staff_repairs?.() || 0;
+      if (restored) post({ type: "log", msg: `REPAIR: Restored ${restored} clipped grand-staff region(s) after verifying all five printed staff lines. Compare the recovered passage with the original.` });
+      const notices = rs.page_geometry_notices?.() || 0;
+      if (notices) post({ type: "log", msg: `REVIEW: Image-derived barline count differs on ${notices} staff system(s). Verify measure boundaries; no barlines were automatically inserted.` });
       rs.page_close();
       return xml;
     }

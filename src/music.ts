@@ -84,6 +84,8 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
     warnings.add(
       "Page layouts differ. Pages play in order using page-specific tracks; review part identities and missing notation against originals.",
     );
+  for (const field of Array.from(doc.querySelectorAll('miscellaneous-field[name="modscore-recognition-review"]')))
+    if (field.textContent) warnings.add(field.textContent);
   const tracks = Array.from(doc.querySelectorAll("part-list > score-part")).map(
     (p) => ({
       id: p.id,
@@ -94,6 +96,11 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
   );
   const measureLengths: number[] = [];
   const measureNumbers: string[] = [];
+  let measurePages: number[] = [];
+  try {
+    const encoded = JSON.parse(doc.querySelector('miscellaneous-field[name="modscore-source-pages"]')?.textContent || "[]");
+    if (Array.isArray(encoded) && encoded.length <= 200000 && encoded.every(n => Number.isInteger(n) && n >= 0 && n <= 100000)) measurePages = encoded;
+  } catch {}
   const tempos: Tempo[] = [];
   const notes: Note[] = [];
   const tempoOffsets: number[] = [];
@@ -236,6 +243,7 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
           `Measure ${m.getAttribute("number") || mi + 1} exceeds its time signature; review voice timing.`,
         );
       measureLengths[mi] = Math.max(measureLengths[mi] || 0, length);
+      if (m.hasAttribute("data-modscore-page")) measurePages[mi] = Number(m.getAttribute("data-modscore-page")) || 0;
       measureNumbers[mi] = m.getAttribute("number") || String(mi + 1);
       staged.push(...miNotes);
       if (m.querySelector("repeat,ending"))
@@ -261,7 +269,7 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
       number: measureNumbers[index],
       beat,
       duration,
-      page: 0,
+      page: measurePages[index] || 0,
     });
     beat += duration;
   });
@@ -348,6 +356,101 @@ export function secondsToBeat(seconds: number, tempos: Tempo[], speed = 1) {
 export function activeNotes(t: Timeline, beat: number) {
   return t.notes.filter((n) => n.beat <= beat && n.beat + n.duration > beat);
 }
+/** Raise a part's tick resolution without changing any encoded musical time. */
+function refineDivisionGrid(doc: Document, part: Element, value: number): number {
+  const denominators = [1,2,3,4,5,6,7,8,12,16,24,32,48,64,96,128,192,256,384,512,768,1024,1536,2048,3072,4096,6144];
+  const denominator = denominators.find(d => Math.abs(value*d-Math.round(value*d)) < 0.000001);
+  if (!denominator) throw Error("Use an exact binary or tuplet duration from the rhythm presets.");
+  const gcd = (a: number,b: number): number => b ? gcd(b,a%b) : a;
+  let common = denominator;
+  for (const node of Array.from(part.querySelectorAll("attributes > divisions"))) {
+    const d = Number(node.textContent);
+    if (!Number.isSafeInteger(d) || d <= 0) throw Error("Invalid MusicXML divisions");
+    common = common / gcd(common,d) * d;
+    if (common > 16777216) throw Error("The required MusicXML timing grid is too fine.");
+  }
+  let oldUnits = 1;
+  const measures = children(part,"measure");
+  for (const measure of measures) {
+    for (const el of Array.from(measure.children)) {
+      const definition = el.localName === "attributes" ? child(el,"divisions") : undefined;
+      if (definition) { oldUnits = Number(definition.textContent); definition.textContent = String(common); }
+      for (const d of Array.from(el.querySelectorAll("duration,offset"))) d.textContent = String(Number(d.textContent)*common/oldUnits);
+      if (el.localName === "note") for (const name of ["attack","release"]) {
+        if (el.hasAttribute(name)) el.setAttribute(name,String(Number(el.getAttribute(name))*common/oldUnits));
+      }
+    }
+  }
+  if (measures[0] && !measures[0].querySelector("attributes > divisions")) {
+    const attrs = doc.createElement("attributes"),d = doc.createElement("divisions");d.textContent=String(common);attrs.append(d);measures[0].prepend(attrs);
+  }
+  return common;
+}
+
+/** Re-encode the measure's cursor movements after reflowing one voice.
+ * Changing a duration in interleaved MusicXML must update backups too; keeping
+ * old backup lengths moved other voices before the measure or duplicated time.
+ */
+function reflowDuration(doc: Document, target: Element, duration: number, initialDivisions: number) {
+  const measure = target.parentElement!;
+  const voiceKey = (el: Element) => `${txt(el, "voice", "1")}:${txt(el, "staff", "1")}`;
+  const events: { el: Element; start: number; duration: number; divisions: number; chord: boolean }[] = [];
+  let cursor = 0, previous = 0, divisions = initialDivisions;
+  for (const el of Array.from(measure.children)) {
+    if (el.localName === "attributes" && child(el, "divisions")) divisions = num(el, "divisions");
+    const d = num(el, "duration") / divisions;
+    if (el.localName === "backup") { cursor -= d; continue; }
+    if (el.localName === "forward") { cursor += d; continue; }
+    const chord = !!child(el, "chord");
+    const start = el.localName === "note" && chord ? previous : cursor;
+    events.push({ el, start, duration: d, divisions, chord });
+    if (el.localName === "note" && !child(el, "grace") && !chord) { previous = cursor; cursor += d; }
+  }
+  const selected = events.find((e) => e.el === target)!;
+  const delta = duration - selected.duration;
+  const key = voiceKey(target);
+  let at = 0, leading = 0;
+  const fragments = doc.createDocumentFragment();
+  const move = (to: number, units: number) => {
+    const difference = to - at;
+    if (Math.abs(difference) < 0.000001) return;
+    const ticks = Math.abs(difference) * units;
+    if (Math.abs(ticks - Math.round(ticks)) > 0.00001) throw Error("This rhythm needs a finer MusicXML division grid.");
+    const shift = doc.createElement(difference > 0 ? "forward" : "backup");
+    const d = doc.createElement("duration"); d.textContent = String(Math.round(ticks));
+    shift.append(d); fragments.append(shift); at = to;
+  };
+  for (const event of events) {
+    const {el, divisions: units} = event;
+    if (el.localName === "note") {
+      const after = event.start > selected.start + 0.000001 && voiceKey(el) === key;
+      const start = event.start + (after ? delta : 0);
+      const length = el === target ? duration : event.duration;
+      if (event.chord && Math.abs(start - leading) > 0.000001) child(el, "chord")?.remove();
+      const chord = !!child(el, "chord");
+      if (!chord) {
+        move(start, units); leading = start;
+        if (!child(el, "grace")) at = start + length;
+      }
+      if (el === target) child(el, "duration")!.textContent = String(Math.round(duration * units));
+    } else if (el.localName === "direction" || el.localName === "harmony") {
+      const oldOffset = num(el, "offset");
+      const offset = (event.start - at) * units + oldOffset;
+      let node = child(el, "offset");
+      if (Math.abs(offset) > 0.000001 || node) {
+        node ??= doc.createElement("offset");
+        node.textContent = String(Math.round(offset));
+        if (!node.parentNode) {
+          const anchor = Array.from(el.children).find((e) => !["direction-type", "root", "kind", "inversion", "bass", "degree"].includes(e.localName));
+          el.insertBefore(node, anchor || null);
+        }
+      }
+    }
+    fragments.append(el);
+  }
+  measure.replaceChildren(fragments);
+}
+
 export function amendNote(
   xml: string,
   note: Note,
@@ -393,28 +496,49 @@ export function amendNote(
         if (d) divisions = Number(d.textContent);
         if (m === el.parentElement) break;
       }
-      const ticks = duration * divisions;
-      if (Math.abs(ticks - Math.round(ticks)) > 0.00001)
-        throw Error(
-          `Duration must be a multiple of 1/${divisions} quarter note.`,
-        );
-      set(el, "duration", String(Math.round(ticks)));
-      for (const d of Array.from(el.querySelectorAll("dot,time-modification")))
-        d.remove();
-      const types: Record<string, string> = {
-        "4": "whole",
-        "2": "half",
-        "1": "quarter",
-        "0.5": "eighth",
-        "0.25": "16th",
-        "0.125": "32nd",
-      };
-      const simple = types[String(duration)];
-      const dotted = types[String(duration / 1.5)];
-      set(el, "type", simple || dotted || "quarter");
-      if (dotted && !simple) el.append(doc.createElement("dot"));
-      if (!simple && !dotted) el.querySelector("type")?.remove();
+      let ticks = duration * divisions;
+      if (Math.abs(ticks - Math.round(ticks)) > 0.00001) {
+        divisions = refineDivisionGrid(doc, el.parentElement!.parentElement!, duration);
+        ticks = duration * divisions;
+      }
+      // A pitch-only edit preserves tuplets, dots, beams and the original type.
+      if (Math.abs(duration - note.duration) > 0.000001) {
+        reflowDuration(doc, el, duration, divisions);
+        for (const d of Array.from(el.querySelectorAll("dot,time-modification,beam,notations > tuplet"))) d.remove();
+        const types: Record<string, string> = {
+          "8": "breve", "4": "whole", "2": "half", "1": "quarter",
+          "0.5": "eighth", "0.25": "16th", "0.125": "32nd",
+          "0.0625": "64th", "0.03125": "128th", "0.015625": "256th",
+          "0.0078125": "512th", "0.00390625": "1024th",
+        };
+        let represented = false;
+        for (const [value, type] of Object.entries(types)) {
+          for (const [factor, dots, actual, normal] of [[1,0,1,1],[1.5,1,1,1],[1.75,2,1,1],[2/3,0,3,2]] as const) {
+            if (Math.abs(Number(value) * factor - duration) > 0.000001) continue;
+            set(el, "type", type);
+            for (let i=0; i<dots; i++) el.append(doc.createElement("dot"));
+            if (actual !== normal) {
+              const tm = doc.createElement("time-modification");
+              set(tm, "actual-notes", String(actual)); set(tm, "normal-notes", String(normal));
+              el.append(tm);
+            }
+            represented = true; break;
+          }
+          if (represented) break;
+        }
+        if (!represented) el.querySelector("type")?.remove();
+      }
     }
+  }
+  for (const index of note.source) {
+    const el = nodes[index];
+    const pitch = el.querySelector("pitch");
+    if (pitch) for (const tag of ["step", "alter", "octave"]) { const child = pitch.querySelector(tag); if(child) pitch.append(child); }
+    const order = ["grace","cue","chord","pitch","unpitched","rest","duration","tie","instrument","footnote","level","voice","type","dot","accidental","time-modification","stem","notehead","notehead-text","staff","beam","notations","lyric","play","listen"];
+    const children = Array.from(el.children);
+    children.sort((a,b) => order.indexOf(a.localName) - order.indexOf(b.localName));
+    const comments = Array.from(el.childNodes).filter(n => n.nodeType===8);
+    el.replaceChildren(...children, ...comments);
   }
   return new XMLSerializer().serializeToString(doc);
 }
@@ -426,7 +550,14 @@ function mergeIndependentPages(pages: string[], title: string) {
     "application/xml",
   );
   dest.querySelector("work-title")!.textContent = title;
+  docs.forEach((doc, page) => {
+    for (const field of Array.from(doc.querySelectorAll('miscellaneous-field[name="modscore-recognition-review"]'))) {
+      const clone = dest.importNode(field, true); clone.textContent = `Page ${page+1}: ${clone.textContent}`;
+      dest.querySelector("identification > miscellaneous")!.append(clone);
+    }
+  });
   const lengths = timelines.flatMap((t) => t.measures.map((m) => m.duration));
+  const sourcePages = timelines.flatMap((t, page) => t.measures.map(() => page));
   let offset = 0;
   docs.forEach((doc, page) => {
     const count = timelines[page].measures.length;
@@ -454,6 +585,7 @@ function mergeIndependentPages(pages: string[], title: string) {
         if (local >= 0 && local < count && measures[local]) {
           const clone = dest.importNode(measures[local], true);
           clone.setAttribute("number", String(global + 1));
+          clone.setAttribute("data-modscore-page", String(sourcePages[global]));
           remap(clone);
           if (local === 0 && !clone.querySelector("attributes > divisions")) {
             const attrs = dest.createElement("attributes");
@@ -466,6 +598,7 @@ function mergeIndependentPages(pages: string[], title: string) {
         } else {
           const m = dest.createElement("measure");
           m.setAttribute("number", String(global + 1));
+          m.setAttribute("data-modscore-page", String(sourcePages[global]));
           m.setAttribute("implicit", "yes");
           const attrs = dest.createElement("attributes");
           if (global === 0) {
@@ -494,7 +627,25 @@ function mergeIndependentPages(pages: string[], title: string) {
   });
   return new XMLSerializer().serializeToString(dest);
 }
+function finalizeSourcePages(xml: string) {
+  const doc = xmlDocument(xml);
+  const first = doc.querySelector("score-partwise > part");
+  const pages = first ? children(first,"measure").map(m => Number(m.getAttribute("data-modscore-page")) || 0) : [];
+  for (const measure of Array.from(doc.querySelectorAll("part > measure"))) measure.removeAttribute("data-modscore-page");
+  let identification = doc.querySelector("identification");
+  if (!identification) { identification = doc.createElement("identification");doc.documentElement.insertBefore(identification,doc.querySelector("defaults,part-list")); }
+  let misc = identification.querySelector("miscellaneous");
+  if (!misc) {misc = doc.createElement("miscellaneous");identification.append(misc);}
+  for (const old of Array.from(misc.querySelectorAll('miscellaneous-field[name="modscore-source-pages"]'))) old.remove();
+  const field = doc.createElement("miscellaneous-field");field.setAttribute("name","modscore-source-pages");field.textContent=JSON.stringify(pages);misc.append(field);
+  return new XMLSerializer().serializeToString(doc);
+}
 export function mergePages(pages: string[], title: string) {
+  pages = pages.map((xml, page) => {
+    const doc = xmlDocument(xml);
+    for (const m of Array.from(doc.querySelectorAll("part > measure"))) m.setAttribute("data-modscore-page", String(page));
+    return new XMLSerializer().serializeToString(doc);
+  });
   if (!pages.length) throw Error("No recognized pages");
   const signatures = pages.map((xml) => {
     const d = xmlDocument(xml);
@@ -515,8 +666,8 @@ export function mergePages(pages: string[], title: string) {
   if (
     signatures.some((s) => JSON.stringify(s) !== JSON.stringify(signatures[0]))
   )
-    return mergeIndependentPages(pages, title);
-  return mergeUniformPages(pages, title);
+    return finalizeSourcePages(mergeIndependentPages(pages, title));
+  return finalizeSourcePages(mergeUniformPages(pages, title));
 }
 function mergeUniformPages(pages: string[], title: string) {
   if (pages.length === 1) return pages[0];
@@ -525,6 +676,14 @@ function mergeUniformPages(pages: string[], title: string) {
   const parts = children(dest.documentElement, "part");
   let number = children(parts[0], "measure").length;
   for (const d of docs.slice(1)) {
+    const fields = Array.from(d.querySelectorAll('miscellaneous-field[name="modscore-recognition-review"]'));
+    if (fields.length) {
+      let identification = dest.querySelector("identification");
+      if (!identification) { identification = dest.createElement("identification"); dest.documentElement.insertBefore(identification, dest.querySelector("defaults,part-list")); }
+      let misc = identification.querySelector("miscellaneous");
+      if (!misc) { misc = dest.createElement("miscellaneous"); identification.append(misc); }
+      for (const field of fields) misc.append(dest.importNode(field, true));
+    }
     const incoming = children(d.documentElement, "part");
     if (incoming.length !== parts.length)
       return mergeIndependentPages(pages, title);
@@ -554,6 +713,7 @@ function mergeUniformPages(pages: string[], title: string) {
 
 export function amendOnset(xml: string, note: Note, newBeat: number): string {
   if (!Number.isFinite(newBeat) || newBeat < 0) throw Error("Invalid onset");
+  if (Math.abs(newBeat - note.beat) < 0.000001) return xml;
   if (note.source.length !== 1)
     throw Error("Move tied notes in an external notation editor.");
   const t = parseMusicXML(xml);
@@ -575,9 +735,11 @@ export function amendOnset(xml: string, note: Note, newBeat: number): string {
     if (d) divisions = Number(d.textContent);
     if (measure === el.parentElement) break;
   }
-  const ticks = Math.abs(delta) * divisions;
-  if (Math.abs(ticks - Math.round(ticks)) > 0.0001)
-    throw Error(`Onset must use 1/${divisions} quarter-note steps.`);
+  let ticks = Math.abs(delta) * divisions;
+  if (Math.abs(ticks - Math.round(ticks)) > 0.0001) {
+    divisions = refineDivisionGrid(doc, el.parentElement!.parentElement!, Math.abs(delta));
+    ticks = Math.abs(delta) * divisions;
+  }
   const shift = (name: string) => {
     const e = doc.createElement(name);
     const d = doc.createElement("duration");
