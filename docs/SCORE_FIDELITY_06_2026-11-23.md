@@ -1,5 +1,7 @@
 # 0.6 — notation fidelity, audio controls and free browsing
 
+Historical 0.6/v2 report: reference events and the single-recording calibration below describe that edition. Reference v3 repairs additional passage/tie artifacts; see [0.6.1 findings](REPERTOIRE_061_2026-11-23.md).
+
 ## What failed in 0.5
 
 The 0.5 Basic Music demo used raw Basic Pitch detections and a fixed C-major/4/4 writer. It omitted the three-flat key signature, missed notes in the opening, produced excessive rhythmic fragmentation and stopped at an arbitrary 32 bars. Browser smoke tests established that a file could render/play; they did not establish musical fidelity. That edition is superseded.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1 — held notes, reference engraving and classical repertoire
+
+- Correct Basic Music adjacent-pitch artifacts in 13/27/28; retain pitch-specific ties (including the recurring G4/B4 and lower F3), rests and rhythmic segmentation. Restate effective clefs after mid-measure changes.
+- Preserve earlier saved v1/v2 edits and offer reference v3 as a separate project.
+- Add complete Bach BWV 772 and BWV 846 Prelude, and Mozart K.545 Allegro measures 1–12, with source PDFs, attribution, original encodings/MIDIs and SHA256 lock.
+- Compare every source-demo pitch, onset and notated duration against independently supplied source MIDI; correct the Mozart source's bar-7 lower-chord C4.
+- Add a demo chooser and source PDF links within the player. Existing Beethoven practice arrangement remains available.
+
 ## 0.6 — reference notation, audio controls and free browsing
 
 - Replace the inaccurate Basic Music demo with a 35-bar C-minor/three-flat reference edition, explicit clefs, short ending and a played repeat; preserve earlier saved edits.

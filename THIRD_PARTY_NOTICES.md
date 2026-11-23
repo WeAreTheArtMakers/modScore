@@ -66,3 +66,7 @@ Spotify AB and contributors, Apache-2.0. Audio note inference uses the 230,444-b
 `vendor/basic-pitch/toMidi.js` is modified: the Node MIDI-writing import/function and source-map reference are removed; note creation is retained. Original TypeScript source and both upstream licenses are bundled alongside it. The Apache-2.0 text is also distributed at `/licenses/basic-pitch-Apache-2.0.txt`. The shared ONNX runtime performs CPU inference locally; TensorFlow.js is not bundled.
 
 The optional local YouTube helper invokes user-installed yt-dlp or uvx; yt-dlp is not redistributed in the static application. It uses no private credentials or paid service. See `docs/AUDIO_YOUTUBE.md`.
+
+## Classical demonstration scores (0.6.1)
+
+The Bach BWV 772 complete score derives from jeff covey's Mutopia typesetting (© 2008, CC BY-SA 3.0). The Bach BWV 846 Prelude typesetting was placed in the public domain by its Mutopia contributors. Mozart K.545 measures 1–12 use the music21 corpus encoding, with the repository BSD-3-Clause notice reproduced at `docs/licenses/music21-BSD-3-Clause.txt` and alongside the source; its comparison PDF/LilyPond/MIDI are Alejandro Sierra's Mutopia edition (© 2013, CC BY-SA 3.0). These music assets retain their own terms, attribution and adaptation notes in `public/demos/LICENSE.md`. Original source files and their SHA256 lock are included; no new restriction is applied to the AGPL application software. The optional maintainer conversion uses python-ly 0.9.9 externally; it is not bundled into the browser.

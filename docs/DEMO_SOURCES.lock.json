@@ -1,0 +1,49 @@
+{
+  "retrieved": "2026-11-23",
+  "files": [
+    {
+      "path": "public/demos/sources/K545-1-a4.pdf",
+      "sha256": "97a3a59fe632fe1ee8f603d0fdca8dedfa78fa636d308cf4e0969eb74ed29151"
+    },
+    {
+      "path": "public/demos/sources/K545-1.ly",
+      "sha256": "84d0e951e6d8807d3286f31ed7878a35dfddb9850bbae9156be0f5ac0a3e2e10"
+    },
+    {
+      "path": "public/demos/sources/K545-1.mid",
+      "sha256": "54e510ba1e5865aeedc4e96bf70b83c93ecddf5b66660033ef98a5a8204ab02d"
+    },
+    {
+      "path": "public/demos/sources/bach-invention-01-a4.pdf",
+      "sha256": "065368cc0357b7fb0666c179be47d9829bb0fb785ead2592b41d2fc8a2d28018"
+    },
+    {
+      "path": "public/demos/sources/bach-invention-01.ly",
+      "sha256": "3c01302f70efd1dd6f43becaf19b9b2aac49e25b3e89666e3e55bc576c6cd55d"
+    },
+    {
+      "path": "public/demos/sources/bach-invention-01.mid",
+      "sha256": "9b9a6213941932d5171d9102d85912c3c1c61f8176ce02005cd2198881823c2d"
+    },
+    {
+      "path": "public/demos/sources/mozart-k545-source.mxl",
+      "sha256": "5b72d6c0ad5aa935865e30e80fc91422b5a131d3f72caf8303cc75d00c5a1556"
+    },
+    {
+      "path": "public/demos/sources/music21-LICENSE.txt",
+      "sha256": "425c3fc0701ab4f07e9520bbc52d596a92c0ae81f5603ef7a44e93d567f2ffb2"
+    },
+    {
+      "path": "public/demos/sources/wtk1-prelude1-a4.pdf",
+      "sha256": "b1c5be9fb63954df9c1a3e7b651ae930c4e5e332a5ab3e14b197379cfa04c35a"
+    },
+    {
+      "path": "public/demos/sources/wtk1-prelude1.ly",
+      "sha256": "afa237b10637ca7839b4c9e98b64ba89c781e2cfc1b980679b2632a31951aacd"
+    },
+    {
+      "path": "public/demos/sources/wtk1-prelude1.mid",
+      "sha256": "874e07d0479542971bfceaf420d6117da8d602d89d26eea4610e7dd1ef58bf26"
+    }
+  ]
+}

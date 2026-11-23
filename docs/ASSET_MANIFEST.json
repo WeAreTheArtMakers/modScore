@@ -6,8 +6,8 @@
   },
   {
     "path": "/THIRD_PARTY_NOTICES.md",
-    "bytes": 9924,
-    "sha256": "f6347fa2b6695007ca3867d13415f3d94e69146af6145a588089edbddf3cd4e4"
+    "bytes": 10781,
+    "sha256": "f6c9184f1c8d500adb4cf1dc3167029406aba7f63413cec239270283ef5dfed0"
   },
   {
     "path": "/_headers",
@@ -16,13 +16,13 @@
   },
   {
     "path": "/about/index.html",
-    "bytes": 13398,
-    "sha256": "cc3da1a3957c6d93d15aa645a2115a04518625e96cc77117ae4821947310d0ae"
+    "bytes": 13592,
+    "sha256": "97f61e9a41b3f8b336a6a0712a1360b8f3295a18b933d3a24d97a3da8d1ee0d1"
   },
   {
-    "path": "/assets/audio-transcription-C5W_ploK.js",
-    "bytes": 2386,
-    "sha256": "d5046c8e194eb9f2a0dc10a1881be479135c00368ddf455dda7da7e1214eadf0"
+    "path": "/assets/audio-transcription-CrEhv_8d.js",
+    "bytes": 2395,
+    "sha256": "c35469dc7ba836e2d71e977a5fc86ce92e0d0654443beffe48a6809a1d55fef2"
   },
   {
     "path": "/assets/audio-worker-DYDxraD9.js",
@@ -30,19 +30,19 @@
     "sha256": "c30ae5cc80580abf86ce48d218ea332417733e63419ec49a8b6946cd30a62e32"
   },
   {
-    "path": "/assets/index-DIxGSRvi.css",
-    "bytes": 29376,
-    "sha256": "9d2ac2eb4a3528e053fe8a709ce344d1714656be076b975b1cbf506f785dc782"
+    "path": "/assets/index-CLCYb0Pa.css",
+    "bytes": 29539,
+    "sha256": "f1ffb9fe0ae5ec1d3f2f8232d71cb6eec3520beb1fb45d7ad10c930d0a989665"
   },
   {
-    "path": "/assets/index-t__Mzn7t.js",
-    "bytes": 176504,
-    "sha256": "df667767adb9a2c2b68be9116c711cc58e366dea70b409d6fd02e31a4116efb3"
+    "path": "/assets/index-DI3IVIJL.js",
+    "bytes": 179633,
+    "sha256": "f1ae452da2f2a0185167b9057237c710db564eb75b3aafe9cda7157925f956b1"
   },
   {
-    "path": "/assets/piano-score-CgLLojdf.js",
+    "path": "/assets/piano-score-D6p9fycJ.js",
     "bytes": 7078,
-    "sha256": "1954dc6a410c34e262827ceee60a597f17353abfef43fdbe33f45bd2782a4e95"
+    "sha256": "e40ce543cbf0a6a5964c29eeeebd3bd24d8534cd50e470b89c7f4ec077600bfd"
   },
   {
     "path": "/audio-pitch/nmp.onnx",
@@ -51,33 +51,43 @@
   },
   {
     "path": "/demos/LICENSE.md",
-    "bytes": 1485,
-    "sha256": "d4c8d56f738832cdc43defeb3ebcb2d9eea568908d59047a8519534f4516d345"
+    "bytes": 4660,
+    "sha256": "e488451b70fde830e7037ca8ce59f44526e41f1eee2c9e8b5f1e77a224adfc6c"
+  },
+  {
+    "path": "/demos/bach-invention-01.musicxml",
+    "bytes": 116297,
+    "sha256": "5ef61d3ca800305165d08d241c8462c7b3f06dfc0b7b83ad76ff1a13c8fd39bd"
+  },
+  {
+    "path": "/demos/bach-prelude-bwv846.musicxml",
+    "bytes": 183057,
+    "sha256": "6f077944fc80f1c4918ed4ec5c869ce0e4d753005c7f099561bc0c1e15aa1aa2"
   },
   {
     "path": "/demos/basic-music-32.mid",
-    "bytes": 5236,
-    "sha256": "6d5eaae356f3e098e23bf4e2e3d631c39065e60e1c20850cd594362da8f7b675"
+    "bytes": 4976,
+    "sha256": "7f10502e8d8ab1816bb62ced8cac939b6ffed1805d5fb14eb1c0d2d1fbdc54d2"
   },
   {
     "path": "/demos/basic-music-32.musicxml",
-    "bytes": 121970,
-    "sha256": "ac81e64768795ed960b4b7433473fd24cd70f456cc765ce71d9412f1e1d86d6e"
+    "bytes": 106842,
+    "sha256": "fbb8f504d5eaec01e905843de0a01ae97acbb5ba68228d0567cde510702ce64a"
   },
   {
     "path": "/demos/basic-music.mid",
-    "bytes": 10785,
-    "sha256": "bfbeb0be321c1054a9c60817043794fa3c789bb887f2e9178262b5717b73880e"
+    "bytes": 10230,
+    "sha256": "fde84d87c4eb3cf92d822c78a99e3f0ee13258b49f116f7402087366b51281a1"
   },
   {
     "path": "/demos/basic-music.musicxml",
-    "bytes": 127528,
-    "sha256": "f6f5c016005521ad3b908b9e0dc6d2281a79fe59b899e05ac81758551f051e02"
+    "bytes": 111965,
+    "sha256": "121c64b6daef90ed3781a235ba2294f0059ab4a86f5f525044aff7bdc6197eb5"
   },
   {
     "path": "/demos/basic-music.score.json",
-    "bytes": 88330,
-    "sha256": "cf57b2c3a8a1749d396fd856918724a8d7036ac88f7152a6a92eba88d6f685f2"
+    "bytes": 88016,
+    "sha256": "2e4856ab513b40e44158d039f9d4cecd269104b3aa32c2540e0b706029d00168"
   },
   {
     "path": "/demos/beethoven-ode-to-joy-32.mid",
@@ -88,6 +98,66 @@
     "path": "/demos/beethoven-ode-to-joy-32.musicxml",
     "bytes": 59756,
     "sha256": "48864f0c8657235de20aae42802e6c161538fc5352339864d51998fd8e8298d9"
+  },
+  {
+    "path": "/demos/mozart-k545-opening.musicxml",
+    "bytes": 72023,
+    "sha256": "16638655abb539db5b4eed17503d1804bef24be445ee382c7f8f9fa34be48896"
+  },
+  {
+    "path": "/demos/sources/K545-1-a4.pdf",
+    "bytes": 142440,
+    "sha256": "97a3a59fe632fe1ee8f603d0fdca8dedfa78fa636d308cf4e0969eb74ed29151"
+  },
+  {
+    "path": "/demos/sources/K545-1.ly",
+    "bytes": 8195,
+    "sha256": "84d0e951e6d8807d3286f31ed7878a35dfddb9850bbae9156be0f5ac0a3e2e10"
+  },
+  {
+    "path": "/demos/sources/K545-1.mid",
+    "bytes": 11580,
+    "sha256": "54e510ba1e5865aeedc4e96bf70b83c93ecddf5b66660033ef98a5a8204ab02d"
+  },
+  {
+    "path": "/demos/sources/bach-invention-01-a4.pdf",
+    "bytes": 66384,
+    "sha256": "065368cc0357b7fb0666c179be47d9829bb0fb785ead2592b41d2fc8a2d28018"
+  },
+  {
+    "path": "/demos/sources/bach-invention-01.ly",
+    "bytes": 4931,
+    "sha256": "3c01302f70efd1dd6f43becaf19b9b2aac49e25b3e89666e3e55bc576c6cd55d"
+  },
+  {
+    "path": "/demos/sources/bach-invention-01.mid",
+    "bytes": 3929,
+    "sha256": "9b9a6213941932d5171d9102d85912c3c1c61f8176ce02005cd2198881823c2d"
+  },
+  {
+    "path": "/demos/sources/mozart-k545-source.mxl",
+    "bytes": 4238,
+    "sha256": "5b72d6c0ad5aa935865e30e80fc91422b5a131d3f72caf8303cc75d00c5a1556"
+  },
+  {
+    "path": "/demos/sources/music21-LICENSE.txt",
+    "bytes": 1501,
+    "sha256": "425c3fc0701ab4f07e9520bbc52d596a92c0ae81f5603ef7a44e93d567f2ffb2"
+  },
+  {
+    "path": "/demos/sources/wtk1-prelude1-a4.pdf",
+    "bytes": 74577,
+    "sha256": "b1c5be9fb63954df9c1a3e7b651ae930c4e5e332a5ab3e14b197379cfa04c35a"
+  },
+  {
+    "path": "/demos/sources/wtk1-prelude1.ly",
+    "bytes": 6449,
+    "sha256": "afa237b10637ca7839b4c9e98b64ba89c781e2cfc1b980679b2632a31951aacd"
+  },
+  {
+    "path": "/demos/sources/wtk1-prelude1.mid",
+    "bytes": 4676,
+    "sha256": "874e07d0479542971bfceaf420d6117da8d602d89d26eea4610e7dd1ef58bf26"
   },
   {
     "path": "/fixtures/grand-staff.musicxml",
@@ -111,8 +181,8 @@
   },
   {
     "path": "/index.html",
-    "bytes": 1088,
-    "sha256": "82db48b9d3c9ba9e2430174c7a1b4038f4d6868a23244ef716cc07f80561abf9"
+    "bytes": 1133,
+    "sha256": "78ccdd5e67480bb1593785e813085ad5721a886545a81c9ab76da1066a7bb2d3"
   },
   {
     "path": "/instruments/acoustic_grand_piano.json",
@@ -1195,6 +1265,11 @@
     "sha256": "fd9d36e800b506237769b003ca988319db06f585a9ebe27eb739a34f1be30d5f"
   },
   {
+    "path": "/licenses/music21-BSD-3-Clause.txt",
+    "bytes": 1501,
+    "sha256": "425c3fc0701ab4f07e9520bbc52d596a92c0ae81f5603ef7a44e93d567f2ffb2"
+  },
+  {
     "path": "/licenses/onnxruntime-MIT.txt",
     "bytes": 1193,
     "sha256": "31e37de3bc7aea805e8812bab710280614b1cdaf50d53b345b80b09d5d1d4e28"
@@ -1342,7 +1417,7 @@
   {
     "path": "/sw.js",
     "bytes": 3221,
-    "sha256": "f59ecd0b49d139aa6aca3661c81d3e9d61776627da58a311ef76b5208402adad"
+    "sha256": "90ce87557c463b038d0912eef6c3896d827df63e893cd251ce45fa0198c2d779"
   },
   {
     "path": "/validate.html",

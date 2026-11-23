@@ -267,11 +267,60 @@ function demoCards() {
   return `<section class="demo-library"><div class="section-heading"><h2>${language === "tr" ? "Demolarla keşfet" : "Explore the demos"}</h2><span class="muted">${language === "tr" ? "Nota ve piyano" : "Score & piano"}</span></div><div class="demo-cards">${demos.map((d) => `<button data-demo="${d.key}" class="demo-card"><span class="demo-icon">${icon("music")}</span><span><strong>${e(d.title)}</strong><small>${e(d.composer)}</small><small>${e(d.subtitle)}</small></span>${icon("play")}</button>`).join("")}</div></section>`;
 }
 function demoBanner() {
-  if (project?.id === "modscore-demo-basic-v1")
-    return `<section class="demo-banner"><p>${language === "tr" ? "Bu, önceki otomatik demo. Düzeltilmiş 35 ölçülük, üç bemollü partisyon hazır; bu kayıttaki düzenlemelerin korunuyor." : "This is the earlier automatic demo. The corrected 35-bar score with three flats is available; your edits to this copy are preserved."}</p>${button(language === "tr" ? "Düzeltilmiş partisyonu aç" : "Open corrected score", "demo-basic", "primary")}</section>`;
+  if (
+    ["modscore-demo-basic-v1", "modscore-demo-basic-v2"].includes(
+      project?.id || ""
+    )
+  )
+    return `<section class="demo-banner"><p>${
+      language === "tr"
+        ? "Bu, önceki demo sürümü. 12–14 ve tekrar pasajları düzeltilmiş partisyon hazır; bu kayıttaki düzenlemelerin korunuyor."
+        : "This is an earlier demo edition. The score with corrected measures 12–14 and the recurring passage is available; your edits to this copy are preserved."
+    }</p>${button(
+      language === "tr" ? "Düzeltilmiş partisyonu aç" : "Open corrected score",
+      "demo-basic",
+      "primary"
+    )}</section>`;
   const demo = demos.find((d) => d.id === project?.id);
   if (!demo) return "";
-  return `<section class="demo-banner" id="demo-banner" data-playing="${audio.playing}"><div class="demo-intro"><div class="demo-bars" aria-hidden="true">${[0, 1, 2, 3, 4].map((i) => `<i style="--i:${i}"></i>`).join("")}</div><div><p class="eyebrow">${language === "tr" ? "ETKİLEŞİMLİ DEMO" : "INTERACTIVE DEMO"} · ${demo.key === "basic" ? 35 : 32} ${language === "tr" ? "ÖLÇÜ" : "MEASURES"}</p><strong>${e(demo.composer)}</strong><p class="fine">${demo.key === "basic" ? (language === "tr" ? "Bestecinin nota referansından · Do minör, üç bemol · 35 ölçü ve tekrar." : "From the composer’s score reference · C minor, three flats · 35 bars with repeat.") : language === "tr" ? "Beethoven’ın temasından 32 ölçülük piyano düzenlemesi." : "A 32-bar piano arrangement of Beethoven’s theme."} <a href="${demo.source}" target="_blank" rel="noopener">${language === "tr" ? "Kaynak" : "Source"}</a></p></div></div><div class="demo-actions">${button(guideActive ? "Stop tour" : "Start guided demo", guideActive ? "demo-stop" : "demo-start", "primary")}${button(demo.key === "basic" ? "Try Beethoven" : "Try Basic Music", demo.key === "basic" ? "demo-beethoven" : "demo-basic", "text-button")}</div><div class="demo-features">${[
+  return `<section class="demo-banner" id="demo-banner" data-playing="${
+    audio.playing
+  }"><div class="demo-intro"><div class="demo-bars" aria-hidden="true">${[
+    0, 1, 2, 3, 4,
+  ]
+    .map((i) => `<i style="--i:${i}"></i>`)
+    .join("")}</div><div><p class="eyebrow">${
+    language === "tr" ? "ETKİLEŞİMLİ DEMO" : "INTERACTIVE DEMO"
+  } · ${demo.bars} ${language === "tr" ? "ÖLÇÜ" : "MEASURES"}</p><strong>${e(
+    demo.composer
+  )}</strong><p class="fine">${e(
+    language === "tr" ? demo.descriptionTr : demo.description
+  )} <a href="${demo.source}" target="_blank" rel="noopener">${
+    language === "tr" ? "Kaynak" : "Source"
+  }</a>${
+    demo.pdf
+      ? ` · <a href="${assetPath(demo.pdf)}" target="_blank" rel="noopener">${
+          language === "tr" ? "Kaynak nota PDF" : "Source score PDF"
+        }</a>`
+      : ""
+  }</p></div></div><div class="demo-actions">${button(
+    guideActive ? "Stop tour" : "Start guided demo",
+    guideActive ? "demo-stop" : "demo-start",
+    "primary"
+  )}${button(
+    demo.key === "basic" ? "Try Beethoven" : "Try Basic Music",
+    demo.key === "basic" ? "demo-beethoven" : "demo-basic",
+    "text-button"
+  )}<label class="demo-select">${
+    language === "tr" ? "Demo seç" : "Choose demo"
+  }<select id="demo-select" aria-label="Choose demo">${demos
+    .map(
+      (d) =>
+        `<option value="${d.key}" ${d.key === demo.key ? "selected" : ""}>${e(
+          d.title
+        )} · ${e(d.composer)}</option>`
+    )
+    .join("")}</select></label></div><div class="demo-features">${[
     ["demo-follow", "Score & piano"],
     ["demo-loop", "Loop 1–4"],
     ["demo-metronome", "Metronome"],
@@ -279,11 +328,17 @@ function demoBanner() {
   ]
     .map(
       ([action, title], i) =>
-        `<button data-action="${action}" data-guide-step="${i}" aria-pressed="${guideActive && guideStep === i}">${label(title)}</button>`,
+        `<button data-action="${action}" data-guide-step="${i}" aria-pressed="${
+          guideActive && guideStep === i
+        }">${label(title)}</button>`
     )
     .join(
-      "",
-    )}</div><p class="demo-caption" id="demo-caption" aria-live="polite">${language === "tr" ? "Başlatın; nota, piyano, döngü ve metronomu birlikte deneyin." : "Start the tour to see the score, piano, loops and metronome work together."}</p></section>`;
+      ""
+    )}</div><p class="demo-caption" id="demo-caption" aria-live="polite">${
+    language === "tr"
+      ? "Başlatın; nota, piyano, döngü ve metronomu birlikte deneyin."
+      : "Start the tour to see the score, piano, loops and metronome work together."
+  }</p></section>`;
 }
 function audioView() {
   return `<div class="page-heading"><div><p class="eyebrow">AUDIO TO PIANO / LOCAL AI</p><h1>${language === "tr" ? "Sesten piyano notalarına" : "Turn audio into piano"}</h1><p class="lede">${language === "tr" ? "Bir kayıt veya YouTube bağlantısından düzenlenebilir nota, MIDI ve piyano takibi oluşturun." : "Create editable notation, MIDI and piano playback from a recording or YouTube link."}</p></div></div><div class="audio-flow"><section class="panel audio-source"><h2>${language === "tr" ? "Müziği seç" : "Choose your music"}</h2><label class="audio-file-label">${language === "tr" ? "Ses dosyası" : "Audio file"}<input id="audio-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac"></label><p id="audio-file-name" class="fine">MP3, WAV, M4A, OGG, WebM · max. 40 MB</p><audio id="audio-preview" controls hidden aria-label="Source recording preview"></audio><div class="audio-divider">${language === "tr" ? "veya" : "or"}</div><label>YouTube<input id="youtube-url" type="url" placeholder="https://www.youtube.com/watch?v=…" value="${e(audioSourceUrl)}"></label><p class="fine">${language === "tr" ? "YouTube için bilgisayarınızdaki ücretsiz yerel yardımcı kullanılır. Ses dosyaları doğrudan tarayıcıda işlenir." : "YouTube uses the free helper running on your computer. Audio files are processed directly in your browser."}</p><details><summary>${language === "tr" ? "YouTube yardımcısını bağla" : "Connect the YouTube helper"}</summary><p>${language === "tr" ? "Proje klasöründe terminal açıp aşağıdaki komutu çalıştırın; terminal açık kalsın." : "In a terminal inside the project folder, run this command and keep it open."}</p><pre><code>npm run youtube:helper</code></pre><p class="fine">${language === "tr" ? "yt-dlp veya uv kurulu olmalı. Tarayıcı sorarsa yerel ağ iznini verin." : "Install yt-dlp or uv first. If prompted by your browser, allow the local network connection."} <a href="https://github.com/WeAreTheArtMakers/modScore/blob/main/docs/AUDIO_YOUTUBE.md" target="_blank" rel="noopener">${language === "tr" ? "Kurulum kılavuzu" : "Setup guide"}</a></p></details></section><section class="panel audio-options"><h2>${language === "tr" ? "Piyano partisyonu" : "Piano score"}</h2><label>${language === "tr" ? "Başlık" : "Title"}<input id="audio-title" value="${e(audioTitle)}"></label>${audioControls({ ...audioSettings, bpm: audioBpm, bars: audioBars }, language === "tr")}<p class="fine">${language === "tr" ? "Önerilen BPM ve tonu kontrol edin. Temiz algılama zayıf/kısa sesleri azaltır; Ayrıntılı hızlı pasajları korur. Tek enstrümanlı, temiz kayıtlar daha iyi sonuç verir." : "Review the suggested BPM and key. Cleaner detection suppresses weak/short notes; Detailed keeps faster passages. Clean, single-instrument recordings work best."}</p>${button("Create piano score", "transcribe-audio", "primary wide")}${button("Try Basic Music", "demo-basic", "text-button")}<div id="audio-progress" role="status" aria-live="polite"></div><button data-action="cancel-audio" id="cancel-audio" hidden>${label("Cancel")}</button><p class="fine">${language === "tr" ? "Model: Spotify Basic Pitch · otomatik tahmin; perde, ritim ve akorları kayıtla karşılaştırın." : "Model: Spotify Basic Pitch · automatic estimates; compare pitches, rhythm and chords with the recording."}</p></section></div>`;
@@ -705,7 +760,7 @@ function render() {
     )
     .join(
       "",
-    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore 0.6 · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : view === "audio" ? audioView() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}">${e(s)}</button>`).join("")}${project?.performance ? '<button data-export-type="6">Performance MIDI (.mid)</button>' : ""}</div><p class="fine">${project?.performance ? "Performance MIDI preserves detected timing before notation edits; MIDI above exports the current score. " : ""}Project backups preserve images and notation. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
+    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore 0.6.1 · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : view === "audio" ? audioView() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}">${e(s)}</button>`).join("")}${project?.performance ? '<button data-export-type="6">Performance MIDI (.mid)</button>' : ""}</div><p class="fine">${project?.performance ? "Performance MIDI preserves detected timing before notation edits; MIDI above exports the current score. " : ""}Project backups preserve images and notation. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
   bind();
   if (mode === "editor") void drawSourceExcerpt().catch(() => {});
   if (view === "player" || view === "piano") {
@@ -1642,6 +1697,8 @@ function bind() {
       if (input) input.value = "";
     }
   });
+  const demoSelect = app.querySelector<HTMLSelectElement>("#demo-select");
+  if (demoSelect) demoSelect.onchange = safe(async () => openProject(await demoProject(demoSelect.value)));
   app
     .querySelectorAll<HTMLElement>("[data-demo]")
     .forEach(

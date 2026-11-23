@@ -18,11 +18,11 @@ test("first launch opens Basic Music once, plays score and piano, and keeps the 
   await expect(page.locator(".key.active").first()).toBeVisible();
   await expect(page.locator("#demo-banner")).toHaveAttribute(
     "data-playing",
-    "true",
+    "true"
   );
   await page.getByRole("button", { name: "Stop tour", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Play", exact: true }),
+    page.getByRole("button", { name: "Play", exact: true })
   ).toBeVisible();
   await page.getByRole("button", { name: "Loop 1–4", exact: true }).click();
   await expect(page.locator("#loop-on")).toBeChecked();
@@ -46,7 +46,7 @@ test("first launch opens Basic Music once, plays score and piano, and keeps the 
     return Promise.all(
       ["basic-music", "beethoven-ode-to-joy-32"].map(async (name) => {
         const t = parseMusicXML(
-          await (await fetch(`/demos/${name}.musicxml`)).text(),
+          await (await fetch(`/demos/${name}.musicxml`)).text()
         );
         return {
           bars: t.measures.length,
@@ -55,13 +55,13 @@ test("first launch opens Basic Music once, plays score and piano, and keeps the 
           tempo: t.tempos[0].bpm,
           warnings: t.warnings,
         };
-      }),
+      })
     );
   });
   expect(result[0]).toMatchObject({
     bars: 70,
     beats: 272,
-    notes: 1314,
+    notes: 1236,
     tempo: 110,
   });
   expect(result[1]).toMatchObject({
@@ -74,8 +74,8 @@ test("first launch opens Basic Music once, plays score and piano, and keeps the 
   expect(errors).toEqual([]);
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth + 1,
-    ),
+      () => document.documentElement.scrollWidth <= innerWidth + 1
+    )
   ).toBe(true);
 });
 test("returning library is preserved and a deleted demo is not silently re-added", async ({
@@ -85,7 +85,7 @@ test("returning library is preserved and a deleted demo is not silently re-added
   await expect(page.locator("h1")).toHaveText("Basic Music");
   await page.evaluate(async () => {
     const { deleteScore } = await import("/src/storage.ts");
-    await deleteScore("modscore-demo-basic-v2");
+    await deleteScore("modscore-demo-basic-v3");
   });
   await page.reload();
   await expect(page.locator("#demo-banner")).toHaveCount(0);
@@ -101,7 +101,7 @@ test("audio source workflow produces real MIDI from a locally inferred piano rec
 }) => {
   test.skip(
     isMobile,
-    "Real inference is covered in desktop Chrome; responsive source controls are checked separately.",
+    "Real inference is covered in desktop Chrome; responsive source controls are checked separately."
   );
   test.setTimeout(180000);
   await page.goto("/");
@@ -163,7 +163,7 @@ test("audio source workflow produces real MIDI from a locally inferred piano rec
   });
   await expect(page.locator("#notation svg").first()).toBeVisible();
   await expect(page.locator(".warnings")).toContainText(
-    "Automatic audio transcription",
+    "Automatic audio transcription"
   );
   const notes = await page.evaluate(async () => {
     const { listScores } = await import("/src/storage.ts");
@@ -184,13 +184,13 @@ test("audio source workflow produces real MIDI from a locally inferred piano rec
     .getByRole("button", { name: "Performance MIDI (.mid)", exact: true })
     .click();
   const performance = parseMidi(
-    new Uint8Array(await readFile((await (await raw).path())!)),
+    new Uint8Array(await readFile((await (await raw).path())!))
   );
   expect(
     performance.tracks
       .flat()
       .filter((e) => e.type === "noteOn")
-      .map((e) => (e.type === "noteOn" ? e.noteNumber : 0)),
+      .map((e) => (e.type === "noteOn" ? e.noteNumber : 0))
   ).toEqual(expect.arrayContaining([57, 60, 64, 69]));
   const backup = await page.evaluate(async () => {
     const { listScores, exportProject, validateProject } = await import(
@@ -222,14 +222,14 @@ test("YouTube links are validated before network and helper failure offers the a
       status: 409,
       contentType: "application/json",
       body: JSON.stringify({ error: "Another video is being prepared." }),
-    }),
+    })
   );
   await page.locator("#youtube-url").fill("https://youtu.be/AN0wGBUxkIk");
   await page
     .getByRole("button", { name: "Create piano score", exact: true })
     .click();
   await expect(page.locator(".toast").last()).toContainText(
-    "Another video is being prepared",
+    "Another video is being prepared"
   );
   await page.unroute("http://127.0.0.1:8790/**");
   await page.route("http://127.0.0.1:8790/**", (r) => r.abort());
@@ -239,8 +239,8 @@ test("YouTube links are validated before network and helper failure offers the a
   await expect(page.locator(".toast").last()).toContainText("local helper");
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth + 1,
-    ),
+      () => document.documentElement.scrollWidth <= innerWidth + 1
+    )
   ).toBe(true);
 });
 test("guided tour advances through loop, metronome and keyboard with reduced motion", async ({
@@ -253,7 +253,7 @@ test("guided tour advances through loop, metronome and keyboard with reduced mot
     .getByRole("button", { name: "Start guided demo", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Pause", exact: true }),
+    page.getByRole("button", { name: "Pause", exact: true })
   ).toBeVisible();
   await page.clock.install();
   await page.clock.runFor(9000);
@@ -267,7 +267,7 @@ test("guided tour advances through loop, metronome and keyboard with reduced mot
     await page
       .locator(".demo-bars i")
       .first()
-      .evaluate((n) => getComputedStyle(n).animationName),
+      .evaluate((n) => getComputedStyle(n).animationName)
   ).toBe("none");
   await page.getByRole("button", { name: "Stop tour", exact: true }).click();
 });

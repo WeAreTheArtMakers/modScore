@@ -38,7 +38,7 @@ test("Basic Music matches the supplied opening, three flats, 35 written bars and
   expect(r.written).toBe(35);
   expect(r.beats).toBe(272);
   expect(r.seconds).toBeCloseTo(148.363636, 5);
-  expect(r.notes).toBe(1314);
+  expect(r.notes).toBe(1236);
   expect(r.warnings).toEqual([]);
   expect(r.sourceAtRepeat).toBe(0);
   expect(r.first).toEqual([
@@ -62,7 +62,7 @@ test("Basic Music matches the supplied opening, three flats, 35 written bars and
     expect.objectContaining({ key: -3, scale: 1 }),
   ]);
   expect(midi.tracks.flat().filter((e) => e.type === "noteOn")).toHaveLength(
-    1314,
+    1236
   );
 });
 test("notation retains chromatic pitches, chosen key/meter and independent unquantized performance", async ({
@@ -197,7 +197,7 @@ test("articulations alter performed release and accents without rewriting notati
         bars: 1,
         bpm: 60,
         key: { fifths: -3, mode: "minor" },
-      },
+      }
     );
     const t = parseMusicXML(xml),
       bytes = await exportMidi(t).arrayBuffer(),
@@ -217,7 +217,7 @@ test("articulations alter performed release and accents without rewriting notati
   expect(
     parseMidi(Uint8Array.from(r.bytes))
       .tracks.flat()
-      .find((e) => e.type === "keySignature"),
+      .find((e) => e.type === "keySignature")
   ).toMatchObject({ key: -3, scale: 1 });
 });
 test("manual browsing releases follow permanently and following scrolls only the notation pane", async ({
@@ -230,7 +230,7 @@ test("manual browsing releases follow permanently and following scrolls only the
   await page.locator("#follow").check();
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Pause", exact: true }),
+    page.getByRole("button", { name: "Pause", exact: true })
   ).toBeVisible();
   await page.evaluate(() => {
     window.scrollTo(0, 0);
@@ -239,7 +239,7 @@ test("manual browsing releases follow permanently and following scrolls only the
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => scrollY)).toBe(0);
   expect(
-    await page.locator(".score-workspace").evaluate((n) => n.scrollTop),
+    await page.locator(".score-workspace").evaluate((n) => n.scrollTop)
   ).toBeGreaterThan(0);
   await page
     .locator(".score-workspace")
@@ -247,11 +247,11 @@ test("manual browsing releases follow permanently and following scrolls only the
   await expect(page.locator("#follow")).not.toBeChecked();
   await page.locator(".score-workspace").evaluate((n) => (n.scrollTop = 100));
   await page.evaluate(() =>
-    document.querySelector<HTMLElement>('[data-measure="30"]')!.click(),
+    document.querySelector<HTMLElement>('[data-measure="30"]')!.click()
   );
   await page.waitForTimeout(800);
   expect(
-    await page.locator(".score-workspace").evaluate((n) => n.scrollTop),
+    await page.locator(".score-workspace").evaluate((n) => n.scrollTop)
   ).toBe(100);
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
@@ -259,14 +259,14 @@ test("manual browsing releases follow permanently and following scrolls only the
   await page.locator("#piano").dispatchEvent("touchmove");
   await expect(page.locator("#auto-keys")).not.toBeChecked();
 });
-test("earlier demo edits are preserved while opening the corrected edition", async ({
+for (const edition of ["v1", "v2"]) test(`earlier ${edition} demo edits are preserved while opening the corrected edition`, async ({
   page,
 }) => {
   await page.goto("/");
-  await page.evaluate(async () => {
+  await page.evaluate(async (edition) => {
     const { saveScore } = await import("/src/storage.ts");
     await saveScore({
-      id: "modscore-demo-basic-v1",
+      id: `modscore-demo-basic-${edition}`,
       title: "Basic Music edited",
       xml: await (await fetch("/fixtures/grand-staff.musicxml")).text(),
       pages: [],
@@ -275,14 +275,14 @@ test("earlier demo edits are preserved while opening the corrected edition", asy
       updated: 1,
       reviewed: false,
     });
-  });
+  }, edition);
   await page
     .getByRole("button", { name: "My scores", exact: true })
     .first()
     .click();
   await page.locator(".score-open").click();
   await expect(page.locator(".demo-banner")).toContainText(
-    "earlier automatic demo",
+    "earlier demo edition"
   );
   await page
     .getByRole("button", { name: "Open corrected score", exact: true })
@@ -295,11 +295,11 @@ test("earlier demo edits are preserved while opening the corrected edition", asy
     return (await listScores()).map((p) => ({ id: p.id, title: p.title }));
   });
   expect(saved).toContainEqual({
-    id: "modscore-demo-basic-v1",
+    id: `modscore-demo-basic-${edition}`,
     title: "Basic Music edited",
   });
   expect(saved).toContainEqual({
-    id: "modscore-demo-basic-v2",
+    id: "modscore-demo-basic-v3",
     title: "Basic Music",
   });
 });
@@ -326,7 +326,7 @@ test("notation grid collapses identical simultaneous strikes while performance r
           amplitude: 0.8,
         },
       ],
-      { title: "Reattacks", bpm: 60, bars: 8, trimStart: false, grid: 0.25 },
+      { title: "Reattacks", bpm: 60, bars: 8, trimStart: false, grid: 0.25 }
     );
     return { raw: out.performance, score: parseMusicXML(out.xml).notes };
   });

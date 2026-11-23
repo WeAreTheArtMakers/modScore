@@ -1,3 +1,4 @@
+import { basicReferenceXml } from "./basic-reference.mjs";
 // Rebuild the notation edition from its reviewable note data, never from raw AMT output.
 import ts from "typescript";
 import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
@@ -8,7 +9,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const directory = await mkdtemp(join(tmpdir(), "modscore-score-"));
 try {
-  for (const name of ["notation", "piano-score", "midi"]) {
+  for (const name of ["notation", "midi"]) {
     const source = await readFile(`src/${name}.ts`, "utf8");
     const js = ts
       .transpileModule(source, {
@@ -20,23 +21,20 @@ try {
       .outputText.replace('"./notation"', '"./notation.mjs"')
       .replace(
         '"@tonejs/midi"',
-        JSON.stringify(pathToFileURL(require.resolve("@tonejs/midi")).href),
+        JSON.stringify(pathToFileURL(require.resolve("@tonejs/midi")).href)
       )
       .replace(
         '"midi-file"',
-        JSON.stringify(pathToFileURL(require.resolve("midi-file")).href),
+        JSON.stringify(pathToFileURL(require.resolve("midi-file")).href)
       );
     const nodeJs = js.replace(
       /import \{ Midi \} from ([^;]+);/,
-      "import MidiPackage from $1;const {Midi}=MidiPackage;",
+      "import MidiPackage from $1;const {Midi}=MidiPackage;"
     );
     await writeFile(join(directory, `${name}.mjs`), nodeJs);
   }
-  const { pianoScore } = await import(
-    pathToFileURL(join(directory, "piano-score.mjs")).href
-  );
   const score = JSON.parse(
-    await readFile("public/demos/basic-music.score.json", "utf8"),
+    await readFile("public/demos/basic-music.score.json", "utf8")
   );
   const events = [];
   let barStart = 0;
@@ -69,7 +67,7 @@ try {
             (n) =>
               n.staff === staff &&
               n.pitch === pitch &&
-              Math.abs(n.beat + n.duration - beat) < 1e-7,
+              Math.abs(n.beat + n.duration - beat) < 1e-7
           );
           if (item.tie?.includes("stop") && previous)
             previous.duration += duration;
@@ -89,40 +87,13 @@ try {
     }
     barStart += score.barDurations[bar.number - 1];
   }
-  const options = {
-    title: score.title,
-    composer: score.composer,
-    bars: 35,
-    bpm: score.bpm,
-    key: score.key,
-    clefs: score.clefs,
-    barDurations: score.barDurations,
-    rights: score.rights,
-  };
-  let xml = pianoScore(events, options);
-  xml = xml.replace(
-    '<measure number="1">',
-    '<measure number="1"><barline location="left"><repeat direction="forward"/></barline>',
+  await writeFile(
+    "public/demos/basic-music.musicxml",
+    basicReferenceXml(score)
   );
-  xml = xml.replace(
-    "<bar-style>light-heavy</bar-style>",
-    '<bar-style>light-heavy</bar-style><repeat direction="backward" times="2"/>',
-  );
-  await writeFile("public/demos/basic-music.musicxml", xml);
-  // Keep existing download URLs useful as corrected 32-bar excerpts.
   await writeFile(
     "public/demos/basic-music-32.musicxml",
-    pianoScore(
-      events
-        .filter((n) => n.beat < 128)
-        .map((n) => ({ ...n, duration: Math.min(n.duration, 128 - n.beat) })),
-      {
-        ...options,
-        bars: 32,
-        barDurations: undefined,
-        clefs: score.clefs.filter((c) => c.beat < 128),
-      },
-    ),
+    basicReferenceXml(score, 32, false)
   );
   const { exportMidi } = await import(
     pathToFileURL(join(directory, "midi.mjs")).href
@@ -159,13 +130,13 @@ try {
           voice: "1",
           measure: 0,
           source: [],
-        })),
+        }))
       ).flat(),
     };
   };
   await writeFile(
     "public/demos/basic-music.mid",
-    new Uint8Array(await exportMidi(timeline(events, 2)).arrayBuffer()),
+    new Uint8Array(await exportMidi(timeline(events, 2)).arrayBuffer())
   );
   await writeFile(
     "public/demos/basic-music-32.mid",
@@ -178,10 +149,10 @@ try {
               ...n,
               duration: Math.min(n.duration, 128 - n.beat),
             })),
-          1,
-        ),
-      ).arrayBuffer(),
-    ),
+          1
+        )
+      ).arrayBuffer()
+    )
   );
   console.log(
     JSON.stringify({
@@ -190,7 +161,7 @@ try {
       events: events.length,
       key: score.key,
       repeat: 2,
-    }),
+    })
   );
 } finally {
   await rm(directory, { recursive: true, force: true });

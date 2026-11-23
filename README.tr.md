@@ -5,9 +5,15 @@
 
 modScore, basılı notaları tarayıcınızda tanıyıp seslendirmenizi ve 88 tuşlu piyano üzerinde takip etmenizi sağlar. Hesap, ücretli servis, reklam veya nota yüklemesi gerekmez. Nota dosyaları cihazınızda işlenir ve tarayıcınızın yerel kitaplığında saklanır.
 
-**Geliştirme sürümü 0.6.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
+**Geliştirme sürümü 0.6.1.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
 
 ![modScore ve projeyle gelen özgün CC0 çalışma notası](docs/preview.png)
+
+## 0.6.1: düzeltilmiş pasajlar ve kaynak notalardan demolar
+
+Basic Music v3, 12–14 / 26–28 çevresindeki yakın aralıklı taslak seslerini ve tekrar pasajındaki eksik bağları düzeltir. Nota olayları, suslar ve anahtar geçişleri doğrudan yazılır. Önceki kayıtları değiştirmeden **Düzeltilmiş partisyonu aç** düğmesiyle yeni sürüme geçilir.
+
+Demo seçicisine **Bach BWV 772** (tamamı, 22 ölçü), **Bach BWV 846 Prelüd** (tamamı, 35 ölçü) ve **Mozart K.545 Allegro** (özgün ilk 12 ölçü) eklendi. Kaynak PDF, atıf ve dosya özetleri dahildir. Demolar ses modelinden tahmin edilmedi. Bach’ın süsleme/fermata işaretleri gösterilir; otomatik çalma ana notaları ve sayısal süreleri izler. [Kaynak ve lisanslar](public/demos/LICENSE.md) · [Doğrulama](docs/REPERTOIRE_061_2026-11-23.md).
 
 ## 0.6: doğru referans nota ve serbest çalışma
 

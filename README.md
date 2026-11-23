@@ -11,7 +11,7 @@
 </p>
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-b6ef72?style=flat-square"></a>
-  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-80cae9?style=flat-square">
+  <img alt="Version 0.6.1" src="https://img.shields.io/badge/version-0.6.1-80cae9?style=flat-square">
   <img alt="Local processing" src="https://img.shields.io/badge/processing-on_device-b6ef72?style=flat-square">
 </p>
 
@@ -20,6 +20,12 @@ modScore turns printed sheet music into notation you can hear, see and practice.
 **Working development release.** Recognition is experimental. Review pitches, rhythm, ties and parts against the original. Desktop Chrome has been tested; physical iPhone XS / iOS 18, Android, Windows, MIDI keyboards and audio interfaces still need device testing. See [limitations](docs/LIMITATIONS.md) and [recognition evidence](docs/RECOGNITION_REPORT.md).
 
 ![modScore playing the included original CC0 study](docs/preview.png)
+
+## 0.6.1: corrected passages and source-based repertoire
+
+Basic Music reference v3 restores held-note ties in the recurring passage and corrects adjacent-pitch draft artifacts around measures 12–14 / 26–28. Original source events, rests and clef transitions are now written directly. Earlier saved copies offer **Open corrected score** without replacing edits.
+
+The demo chooser also offers **Bach BWV 772** (complete, 22 measures), **Bach BWV 846 Prelude** (complete, 35 measures), and **Mozart K.545 Allegro** (original opening measures 1–12). Source PDFs, attribution and source-file hashes are bundled. These are notation-source editions, not audio-model guesses. Bach ornaments/fermatas are displayed; automatic playback follows principal notes and numeric durations. See [demo sources and licenses](public/demos/LICENSE.md) and [validation](docs/REPERTOIRE_061_2026-11-23.md).
 
 ## Use it in your browser
 

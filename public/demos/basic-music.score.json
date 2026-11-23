@@ -6,7 +6,7 @@
     "fifths": -3,
     "mode": "minor"
   },
-  "source": "Composer-supplied seven score screenshots, 2026-11-22. Optical draft checked and corrected against the supplied notation.",
+  "source": "Composer-supplied seven score screenshots, checked with the recording. Revision 3 removes adjacent-pitch draft artifacts in measures 13/27/28; source event segmentation, rests and pitch-specific ties are retained.",
   "rights": "Composition © Baran Gulesen. Included with the composer’s permission. Music rights reserved.",
   "measures": [
     {
@@ -1778,23 +1778,13 @@
       "upper": [
         {
           "pitches": [
-            "C4",
-            "B3"
+            "C4"
           ],
           "units": 2.0,
           "tie": []
         },
         {
           "pitches": [
-            "F4",
-            "Eb4"
-          ],
-          "units": 1.0,
-          "tie": []
-        },
-        {
-          "pitches": [
-            "G4",
             "F4"
           ],
           "units": 1.0,
@@ -1802,24 +1792,28 @@
         },
         {
           "pitches": [
-            "F4",
-            "Eb4"
+            "G4"
+          ],
+          "units": 1.0,
+          "tie": []
+        },
+        {
+          "pitches": [
+            "F4"
           ],
           "units": 2.0,
           "tie": []
         },
         {
           "pitches": [
-            "D4",
-            "C4"
+            "D4"
           ],
           "units": 2.0,
           "tie": []
         },
         {
           "pitches": [
-            "G4",
-            "Eb4"
+            "G4"
           ],
           "units": 1.0,
           "tie": [
@@ -1828,8 +1822,7 @@
         },
         {
           "pitches": [
-            "G4",
-            "D4"
+            "G4"
           ],
           "units": 1.0,
           "tie": [
@@ -1838,24 +1831,21 @@
         },
         {
           "pitches": [
-            "C5",
-            "C4"
+            "C5"
           ],
           "units": 1.0,
           "tie": []
         },
         {
           "pitches": [
-            "D5",
-            "D4"
+            "D5"
           ],
           "units": 1.0,
           "tie": []
         },
         {
           "pitches": [
-            "C5",
-            "C4"
+            "C5"
           ],
           "units": 1.0,
           "tie": [
@@ -1864,8 +1854,7 @@
         },
         {
           "pitches": [
-            "C5",
-            "Bb3"
+            "C5"
           ],
           "units": 1.0,
           "tie": [
@@ -1874,8 +1863,7 @@
         },
         {
           "pitches": [
-            "B4",
-            "A3"
+            "B4"
           ],
           "units": 1.0,
           "tie": [
@@ -1884,8 +1872,7 @@
         },
         {
           "pitches": [
-            "B4",
-            "Bb3"
+            "B4"
           ],
           "units": 1.0,
           "tie": [
@@ -1903,7 +1890,6 @@
         },
         {
           "pitches": [
-            "G3",
             "F3"
           ],
           "units": 1.0,
@@ -1911,15 +1897,13 @@
         },
         {
           "pitches": [
-            "G3",
-            "F3"
+            "G3"
           ],
           "units": 1.0,
           "tie": []
         },
         {
           "pitches": [
-            "G3",
             "F3"
           ],
           "units": 2.0,
@@ -1927,7 +1911,6 @@
         },
         {
           "pitches": [
-            "Eb3",
             "D3"
           ],
           "units": 2.0,
@@ -1935,8 +1918,7 @@
         },
         {
           "pitches": [
-            "F3",
-            "Eb3"
+            "F3"
           ],
           "units": 1.0,
           "tie": [
@@ -2161,7 +2143,9 @@
             "Bb3"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [
+            "start"
+          ]
         },
         {
           "pitches": [
@@ -4065,23 +4049,13 @@
         },
         {
           "pitches": [
-            "C4",
-            "B3"
+            "C4"
           ],
           "units": 2.0,
           "tie": []
         },
         {
           "pitches": [
-            "F4",
-            "Eb4"
-          ],
-          "units": 1.0,
-          "tie": []
-        },
-        {
-          "pitches": [
-            "G4",
             "F4"
           ],
           "units": 1.0,
@@ -4089,16 +4063,21 @@
         },
         {
           "pitches": [
-            "F4",
-            "Eb4"
+            "G4"
+          ],
+          "units": 1.0,
+          "tie": []
+        },
+        {
+          "pitches": [
+            "F4"
           ],
           "units": 2.0,
           "tie": []
         },
         {
           "pitches": [
-            "D4",
-            "C4"
+            "D4"
           ],
           "units": 2.0,
           "tie": []
@@ -4149,7 +4128,6 @@
         },
         {
           "pitches": [
-            "G3",
             "F3"
           ],
           "units": 1.0,
@@ -4157,15 +4135,13 @@
         },
         {
           "pitches": [
-            "G3",
-            "F3"
+            "G3"
           ],
           "units": 1.0,
           "tie": []
         },
         {
           "pitches": [
-            "G3",
             "F3"
           ],
           "units": 2.0,
@@ -4173,7 +4149,6 @@
         },
         {
           "pitches": [
-            "Eb3",
             "D3"
           ],
           "units": 2.0,
@@ -4186,23 +4161,24 @@
       "upper": [
         {
           "pitches": [
-            "Eb4",
             "G4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [
+            "start"
+          ]
         },
         {
           "pitches": [
-            "D4",
             "G4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [
+            "stop"
+          ]
         },
         {
           "pitches": [
-            "C4",
             "C5"
           ],
           "units": 1.0,
@@ -4210,7 +4186,6 @@
         },
         {
           "pitches": [
-            "D4",
             "D5"
           ],
           "units": 1.0,
@@ -4218,7 +4193,6 @@
         },
         {
           "pitches": [
-            "C4",
             "C5"
           ],
           "units": 2.0,
@@ -4226,19 +4200,21 @@
         },
         {
           "pitches": [
-            "A3",
             "B4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [
+            "start"
+          ]
         },
         {
           "pitches": [
-            "Bb3",
             "B4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [
+            "stop"
+          ]
         },
         {
           "pitches": [
@@ -4286,18 +4262,21 @@
       "lower": [
         {
           "pitches": [
-            "F3",
-            "Eb3"
+            "F3"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [
+            "start"
+          ]
         },
         {
           "pitches": [
             "F3"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [
+            "stop"
+          ]
         },
         {
           "pitches": [
@@ -4308,7 +4287,6 @@
         },
         {
           "pitches": [
-            "G3",
             "B3"
           ],
           "units": 1.0,
@@ -5323,5 +5301,6 @@
       "sign": "F",
       "line": 4
     }
-  ]
+  ],
+  "revision": "reference-v3-2026-11-23"
 }

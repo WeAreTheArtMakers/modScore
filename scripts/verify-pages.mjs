@@ -86,7 +86,7 @@ try {
   const response = await fetch(origin + base + "demos/basic-music.mid");
   const midi = parseMidi(new Uint8Array(await response.arrayBuffer()));
   expect(midi.tracks.flat().filter((e) => e.type === "noteOn")).toHaveLength(
-    1314,
+    1236,
   );
   expect(
     midi.tracks.flat().find((e) => e.type === "keySignature"),
@@ -221,6 +221,24 @@ try {
   await expect(page.locator(".key.active").first()).toBeVisible();
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await verifyAudio("Offline audio study");
+  // The new repertoire and original PDFs must open for the first time offline,
+  // not merely from an already-saved project.
+  await page.getByRole("button", { name: "My scores", exact: true }).first().click();
+  await page.locator(".score-open").filter({hasText:"Basic Music"}).first().click();
+  for (const [key, bars] of [["bach-invention",22],["bach-prelude",35],["mozart",12]]) {
+    await page.locator("#demo-select").selectOption(key);
+    await expect(page.locator("[data-measure]")).toHaveCount(bars);
+    await expect(page.locator("#notation svg").first()).toBeVisible();
+    const pdfMagic = await page.evaluate(async () => {
+      const link = [...document.querySelectorAll("a")].find(a => a.textContent === "Source score PDF");
+      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+      return new TextDecoder().decode(bytes.subarray(0,5));
+    });
+    expect(pdfMagic).toBe("%PDF-");
+    await page.getByRole("button", { name:"Play", exact:true }).click();
+    await expect(page.locator(".key.active").first()).toBeVisible();
+    await page.getByRole("button", { name:"Pause", exact:true }).click();
+  }
   expect(errors, "Browser errors").toEqual([]);
   expect(failures, "Missing production assets").toEqual([]);
   console.log(
@@ -239,6 +257,7 @@ try {
         audioTranscription: true,
         offlineAudioTranscription: true,
         independentMetronomeVolume: true,
+        offlineSourceDemosAndPDFs: 3,
         actualRecognition: process.env.MODSCORE_VERIFY_OMR === "1",
         errors,
         failures,
