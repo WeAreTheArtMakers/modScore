@@ -17,12 +17,19 @@ export class Instruments {
       throw Error("Invalid GM program");
     const name = names[program];
     const key = new URL(assetPath(`instruments/${name}.json`), location.origin).href;
-    const cache = await caches.open(CACHE);
-    let response = await cache.match(key);
+    // Playback can still use the application cache or network if the dedicated
+    // instrument cache is unavailable (for example, after storage eviction).
+    const cache = await globalThis.caches?.open(CACHE).catch(() => undefined);
+    let response = await cache?.match(key).catch(() => undefined);
     if (!response) {
       if (program === 0) {
-        response = await fetch(key);
-        if (!response.ok) throw Error("Bundled piano samples are unavailable");
+        try {
+          response = await fetch(key);
+        } catch {
+          throw Error("Piano samples could not be loaded. Reconnect and use Settings → Prepare offline use.");
+        }
+        if (!response.ok)
+          throw Error("Piano samples could not be loaded. Reconnect and use Settings → Prepare offline use.");
       } else {
         const r = await fetch(
           `https://raw.githubusercontent.com/gleitz/midi-js-soundfonts/${REV}/FluidR3_GM/${name}-mp3.js`,
@@ -45,7 +52,7 @@ export class Instruments {
           headers: { "Content-Type": "application/json" },
         });
       }
-      await cache.put(key, response.clone());
+      await cache?.put(key, response.clone()).catch(() => {});
     }
     const bank = await response.json();
     if (!bank || typeof bank !== "object") throw Error("Invalid sample bank");
@@ -53,9 +60,9 @@ export class Instruments {
     this.program = program;
     this.buffers.clear();
     // Keep the bundled piano and only the current downloaded bank on disk.
-    for (const req of await cache.keys())
+    for (const req of (await cache?.keys().catch(() => [])) ?? [])
       if (req.url !== key && !req.url.endsWith("/acoustic_grand_piano.json"))
-        await cache.delete(req);
+        await cache?.delete(req).catch(() => {});
   }
   async prepare(context: BaseAudioContext, pitches: number[]) {
     for (const pitch of new Set(pitches)) {

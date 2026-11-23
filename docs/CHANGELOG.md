@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8 — score editing, recognition checks and mobile installation
+
+- Edit, audition and delete individual noteheads or add notes from the score palette. The undo and redo history survives app restarts and travels with the project backup.
+- Prepare skewed and faded pages before recognition. Flag short-note, tuplet and chord clusters and possible ties across page breaks. Benchmark four input types against reference MusicXML. Read omitted chord staves from the leading note.
+- Attach recordings and align multiple score positions for A/B listening.
+- Add iPhone and Android installation guidance, an Android maskable icon and an iPhone home-screen icon. Prepare playback and recognition models separately for offline use.
+
 ## 0.7 — recording-checked 13–14, A/B listening and expression
 
 - Basic Music reference v4 changes only 13/14: held F3 bass in 13 and standard MusicXML `release` offsets matching the recording's note overlap in both hands. Other 33 measures are checksum-checked unchanged. v1/v2/v3 edits are preserved.

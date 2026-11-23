@@ -4,7 +4,7 @@ const browser = await chromium.launch({ channel: "chrome" });
 try {
   const page = await browser.newPage();
   const svg = await readFile("public/icon.svg", "utf8");
-  for (const size of [192, 512]) {
+  for (const size of [180, 192, 512]) {
     await page.setViewportSize({ width: size, height: size });
     await page.setContent(
       `<style>*{margin:0}svg{width:100vw;height:100vh}</style>${svg}`,
@@ -14,6 +14,10 @@ try {
       omitBackground: true,
     });
   }
+  await page.setContent(
+    `<style>*{margin:0}body{background:#111418;display:grid;place-items:center;height:100vh}svg{width:78%;height:78%}</style>${svg}`,
+  );
+  await page.screenshot({ path: "public/icon-maskable-512.png" });
 } finally {
   await browser.close();
 }

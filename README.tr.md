@@ -5,7 +5,7 @@
 
 modScore, basılı notaları tarayıcınızda tanıyıp seslendirmenizi ve 88 tuşlu piyano üzerinde takip etmenizi sağlar. Hesap, ücretli servis, reklam veya nota yüklemesi gerekmez. Nota dosyaları cihazınızda işlenir ve tarayıcınızın yerel kitaplığında saklanır.
 
-**Geliştirme sürümü 0.7.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome testleri yapılmıştır. Gerçek iPhone XS/iOS 18, Android, Windows ve fiziksel MIDI/ses kartı testleri henüz tamamlanmamıştır.
+**Sürüm 0.8.0.** Nota tanıma hata yapabilir; ses, ritim, bağlar ve partileri orijinalle karşılaştırın. Masaüstü Chrome ve mobil Chrome görünümü test edildi. Bu sürüm gerçek iPhone, Android, Windows ve fiziksel MIDI/ses donanımında ayrıca doğrulanmalı.
 
 ![modScore ve projeyle gelen özgün CC0 çalışma notası](docs/preview.png)
 
@@ -46,7 +46,7 @@ Yoğun pasajlarda yanlış üçleme, nota ve bağ tanıma hataları hâlâ olabi
 1. **Import score** ile resim, PDF, MusicXML veya MIDI açın. Kamerayla çekmek için **Scan sheet music** kullanın.
 2. PDF sayfalarını seçin; şifreliyse şifresini yerel pencerede girin. Gerekirse resmi kırpın, döndürün veya kontrastı ayarlayın.
 3. **Recognize locally** ile tanımayı başlatın. İlk kullanımda yaklaşık 158 MB model indirilir. Tamamlanan sayfalar otomatik kaydedilir.
-4. **Original / Compare** ile kontrol edin; **Review notes** bölümünde perde, zamanlama, bağ ve tempoyu düzeltin.
+4. **Original / Compare** ile kontrol edin; **Notaları düzelt** bölümünde seçili notayı değiştirin veya silin. **Nota ekle** paletinde ölçü, dizek, vuruş ve süreyi seçin. Nota donanıma uyabilir ya da açık bir natürel, diyez veya bemol alabilir. **Partisyon üzerinde düzenle** ile nota başına tıklayıp dinleyin, değiştirin veya silin. Geri alma ve yineleme geçmişi her partisyon için cihaza kaydedilir ve modScore yedeğine eklenir. Büyük partisyonlarda depolama sınırıyla birlikte en fazla 24 adım saklanır.
 5. Sesi etkinleştirip çalın. Tempoyu düşürün, ölçü döngüsü kurun, transpoze edin veya partileri susturun.
 6. Proje yedeği, MusicXML, MIDI, WAV veya orijinal dosyayı dışa aktarın. Tarayıcı verileri silinebildiği için yedekleri ayrıca saklayın.
 
@@ -99,10 +99,10 @@ npm run preview
 
 **http://localhost:4173** adresinde üretim önizlemesi açılır. GitHub Pages için `npm run build:pages` kullanılır. Web sunucusunda Node gerekmez; `dist/` içeriği statik olarak sunulur.
 
-## Çevrimdışı kullanım ve iPhone
+## iPhone ve Android’de kurulum ve çevrimdışı kullanım
 
-- HTTPS adresini açın. iPhone’da Safari → Paylaş → Ana Ekrana Ekle seçin ve uygulamayı o simgeden açın.
-- **Settings → Prepare offline use** seçip indirmelerin tamamlanmasını bekleyin.
+- HTTPS adresini açın. iPhone’da Safari → **Paylaş → Ana Ekrana Ekle** seçin ve gösteriliyorsa **Web Uygulaması Olarak Aç** seçeneğini etkinleştirin. Android’de modScore’un **Ayarlar → Yükle** düğmesini ya da Chrome’un **⋮ → Ana ekrana ekle → Yükle** menüsünü kullanın. modScore’u ana ekran simgesinden açın.
+- **Ayarlar → Çevrimdışı kullanımı hazırla** ile uygulama ve piyano dosyalarını indirin. Çevrimdışı tarama gerekiyorsa nota tanıma modellerini ayrıca indirin.
 - Kullanacağınız ek enstrümanı önceden seçin. Piyano ve en son seçilen ek banka saklanır.
 - İnterneti kapatıp tekrar açma, tanıma ve çalmayı cihazınızda deneyin.
 

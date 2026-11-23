@@ -1,5 +1,6 @@
 import { assetPath } from "./paths";
 import { xmlDocument } from "./music";
+import { mapScoreHeads } from "./score-heads";
 let script: Promise<void> | undefined;
 function load() {
   return (script ??= new Promise<void>((resolve, reject) => {
@@ -18,6 +19,46 @@ function load() {
 export class Sheet {
   osmd: any;
   onSeek: (measure: number) => void = () => {};
+  onSelect: (source: number) => void = () => {};
+  private scoreDoc?: Document;
+  private heads: ReturnType<typeof mapScoreHeads> = [];
+  private editing = false;
+  private selection?: number;
+
+  setEditing(editing: boolean, selection?: number) {
+    this.editing = editing;
+    this.selection = selection;
+    if (editing && !this.heads.length) this.prepareHeads();
+    this.element?.classList.toggle("editing-score", editing);
+    this.updateHeadSelection();
+  }
+
+  private updateHeadSelection() {
+    const first = this.heads.find((entry) => entry.source === this.selection) ?? this.heads[0];
+    for (const entry of this.heads) {
+      const { head, source, name } = entry;
+      if (this.editing) {
+        head.setAttribute("role", "button");
+        head.setAttribute("aria-label", name);
+        head.setAttribute("aria-pressed", String(source === this.selection));
+        head.setAttribute("tabindex", entry === first ? "0" : "-1");
+        head.dataset.scoreNoteSource = String(source);
+      } else {
+        head.removeAttribute("role");
+        head.removeAttribute("aria-label");
+        head.removeAttribute("aria-pressed");
+        head.removeAttribute("tabindex");
+        delete head.dataset.scoreNoteSource;
+      }
+    }
+  }
+
+  private prepareHeads() {
+    this.heads = this.editing && this.scoreDoc
+      ? mapScoreHeads(this.scoreDoc, this.osmd?.GraphicSheet?.MeasureList ?? [])
+      : [];
+    this.updateHeadSelection();
+  }
   onManualBrowse: () => void = () => {};
   private browseCleanup: (() => void)[] = [];
   resumeFollow() {
@@ -92,7 +133,8 @@ export class Sheet {
         followCursor: false,
       },
     );
-    await this.osmd.load(xmlDocument(xml));
+    this.scoreDoc = xmlDocument(xml);
+    await this.osmd.load(this.scoreDoc);
     if (generation !== this.generation) return;
     if (!element.isConnected) return;
     if (title) this.osmd.Sheet.Title.text = title;
@@ -101,7 +143,26 @@ export class Sheet {
     this.width = element.clientWidth;
     this.osmd.render();
     this.prepareCursor();
+    this.prepareHeads();
+    element.onkeydown = (event) => {
+      const source = (event.target as Element).closest?.("[data-score-note-source]");
+      if (!this.editing || !source) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        this.onSelect(Number(source.getAttribute("data-score-note-source")));
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        const i = this.heads.findIndex(({ head }) => head === source);
+        this.heads[i + (event.key === "ArrowRight" ? 1 : -1)]?.head.focus();
+      }
+    };
     element.onclick = (event) => {
+      const head = (event.target as Element).closest?.("[data-score-note-source]");
+      if (this.editing && head) {
+        this.onSelect(Number(head.getAttribute("data-score-note-source")));
+        return;
+      }
       const rect = element.getBoundingClientRect();
       const x = event.clientX - rect.left + element.scrollLeft,
         y = event.clientY - rect.top + element.scrollTop;
@@ -128,6 +189,7 @@ export class Sheet {
         this.width = element.clientWidth;
         this.osmd.render();
         this.prepareCursor();
+        this.prepareHeads();
       }, 150);
     });
     this.observer.observe(element);
@@ -218,7 +280,14 @@ export class Sheet {
     this.generation++;
     this.wasFollowing = false;
     this.browseCleanup.splice(0).forEach((clean) => clean());
-    if (this.element) this.element.onclick = null;
+    if (this.element) {
+      this.element.onclick = null;
+      this.element.onkeydown = null;
+    }
+    this.scoreDoc = undefined;
+    this.heads = [];
+    this.editing = false;
+    this.selection = undefined;
     this.observer?.disconnect();
     clearTimeout(this.resizeTimer);
     this.osmd?.clear();

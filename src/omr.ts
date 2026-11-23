@@ -1,3 +1,4 @@
+import { inspectScan, restoreScanContrast } from "./image-preflight";
 import { verifyRecognition } from "./recognition-review";
 import { assetPath } from "./paths";
 import { choosePdfPages, askPdfPassword } from "./pdf-selection";
@@ -18,7 +19,8 @@ export class Recognizer {
       this.worker = new Worker(assetPath("recognition/omr-worker.js"), {
         type: "module",
       });
-      this.worker.onerror = (e) => this.fail(new Error(e.message));
+      this.worker.onerror = (e) =>
+        this.fail(Error(e.message || "Recognition worker could not start. Check the local recognition assets."));
       this.worker.onmessage = ({ data }) => {
         if (data.type === "ready") resolve();
         if (data.type === "log") {
@@ -50,18 +52,30 @@ export class Recognizer {
     }));
   }
   private async request(type: string, image: Blob, classes?: Uint8Array) {
+    const worker = this.worker;
     const bytes = await image.arrayBuffer();
+    if (!worker || this.worker !== worker)
+      throw new DOMException("Recognition cancelled.", "AbortError");
     return new Promise<any>((resolve, reject) => {
       const id = ++this.next;
       this.pending.set(id, { resolve, reject });
       const transfers: Transferable[] = [bytes];
       if (classes) transfers.push(classes.buffer as ArrayBuffer);
-      this.worker!.postMessage({ type, id, image: bytes, classes }, transfers);
+      try {
+        worker.postMessage({ type, id, image: bytes, classes }, transfers);
+      } catch (error) {
+        this.pending.delete(id);
+        reject(error);
+      }
     });
   }
   async recognize(image: Blob) {
     this.logs = [];
     await this.init();
+    const worker = this.worker;
+    this.onProgress("Checking page angle and contrast…");
+    image = await normalise(image, "auto");
+    if (this.worker !== worker) throw new DOMException("Recognition cancelled.", "AbortError");
     this.onProgress("Finding staffs and correcting their perspective…");
     const layout = await this.request("layout", image);
     this.onProgress("Reading musical symbols…");
@@ -69,11 +83,11 @@ export class Recognizer {
     const xml = result.xml as string;
     // Recreate per page so the previous encoder cannot overlap the next segnet.
     this.dispose();
-    return verifyRecognition(xml, layout, this.logs);
+    return { xml: verifyRecognition(xml, layout, this.logs), image };
   }
   cancel() {
     this.fail(
-      new Error("Recognition cancelled. Imported pages are still available."),
+      new DOMException("Recognition cancelled. Imported pages are still available.", "AbortError"),
     );
   }
   private fail(e: Error) {
@@ -91,13 +105,26 @@ export class Recognizer {
 }
 export async function normalise(
   blob: Blob,
-  rotation = 0,
+  rotation: number | "auto" = 0,
   crop = [0, 0, 100, 100],
   enhance = false,
 ) {
   const bitmap = await createImageBitmap(blob, {
     imageOrientation: "from-image",
   });
+  let correction: ReturnType<typeof inspectScan> | undefined;
+  if (rotation === "auto") {
+    try {
+      correction = inspectScan(bitmap);
+    } catch (error) {
+      bitmap.close();
+      throw error;
+    }
+  }
+  if (correction && !correction.rotation && !correction.levels) {
+    bitmap.close();
+    return blob;
+  }
   const [left, top, right, bottom] = crop;
   const sx = (bitmap.width * left) / 100,
     sy = (bitmap.height * top) / 100,
@@ -108,7 +135,7 @@ export async function normalise(
     throw Error("Crop must have a positive width and height");
   }
   const scale = Math.min(1, 2600 / Math.max(sw, sh));
-  const r = (rotation * Math.PI) / 180;
+  const r = ((rotation === "auto" ? correction?.rotation ?? 0 : rotation) * Math.PI) / 180;
   const w = Math.ceil(
       (Math.abs(Math.cos(r)) * sw + Math.abs(Math.sin(r)) * sh) * scale,
     ),
@@ -136,6 +163,7 @@ export async function normalise(
     sh * scale,
   );
   bitmap.close();
+  if (correction?.levels) restoreScanContrast(ctx, w, h, correction.levels);
   const output = await new Promise<Blob>((resolve, reject) =>
     c.toBlob(
       (b) =>

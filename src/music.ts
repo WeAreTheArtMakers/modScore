@@ -82,6 +82,16 @@ const txt = (e: Element | undefined, path: string, defaultValue = "") =>
   e?.querySelector(path)?.textContent?.trim() || defaultValue;
 const num = (e: Element | undefined, path: string, fallback = 0) =>
   Number(txt(e, path, String(fallback)));
+/** Some encoders only write the staff on the leading note of a chord. */
+export function noteStaff(note: Element): number {
+  const staff = child(note, "staff");
+  if (staff) return Number(staff.textContent) || 1;
+  if (!child(note, "chord")) return 1;
+  let leading = note.previousElementSibling;
+  while (leading?.localName === "note" && child(leading, "chord"))
+    leading = leading.previousElementSibling;
+  return leading?.localName === "note" ? num(leading, "staff", 1) : 1;
+}
 export function xmlDocument(xml: string) {
   if (xml.length > 25_000_000)
     throw Error("MusicXML is too large for safe mobile parsing");
@@ -287,7 +297,7 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
               : articulations.includes("tenuto")
                 ? 1
                 : 1;
-          const staff = num(el,"staff",1), step = txt(el,"pitch > step"), octave = num(el,"pitch > octave");
+          const staff = noteStaff(el), step = txt(el,"pitch > step"), octave = num(el,"pitch > octave");
           const staffAccidentals = new Map([...accidentals].filter(([k])=>k.startsWith(staff+":")).map(([k,v])=>[k.slice(k.indexOf(":")+1),v]));
           const expr = readExpression(el,step,octave,transpose,staffKeys.get(staff)??staffKeys.get(0)??0,staffAccidentals);
           accidentals.set(`${staff}:${step}${octave}`,num(el,"pitch > alter"));
@@ -300,7 +310,7 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
             duration: dur,
             track: part.id,
             voice: txt(el, "voice", "1"),
-            staff: num(el, "staff", 1),
+            staff,
             measure: mi,
             velocity: Math.max(
               0,
@@ -468,45 +478,52 @@ export function activeNotes(t: Timeline, beat: number) {
   );
 }
 /** Raise a part's tick resolution without changing any encoded musical time. */
-function refineDivisionGrid(
+export function refineDivisionGrid(
   doc: Document,
   part: Element,
-  value: number,
+  ...values: number[]
 ): number {
   const denominators = [
     1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512,
     768, 1024, 1536, 2048, 3072, 4096, 6144,
   ];
-  const denominator = denominators.find(
-    (d) => Math.abs(value * d - Math.round(value * d)) < 0.000001,
-  );
-  if (!denominator)
-    throw Error(
-      "Use an exact binary or tuplet duration from the rhythm presets.",
-    );
   const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
-  let common = denominator;
-  for (const node of Array.from(
-    part.querySelectorAll("attributes > divisions"),
-  )) {
-    const d = Number(node.textContent);
-    if (!Number.isSafeInteger(d) || d <= 0)
+  const integralTicks = (value: number, units: number) =>
+    Math.abs(value * units - Math.round(value * units)) < 0.000001;
+  let common = 1;
+  const include = (units: number) => {
+    if (!Number.isSafeInteger(units) || units <= 0)
       throw Error("Invalid MusicXML divisions");
-    common = (common / gcd(common, d)) * d;
+    common = (common / gcd(common, units)) * units;
     if (common > 16777216)
       throw Error("The required MusicXML timing grid is too fine.");
+  };
+  for (const node of part.querySelectorAll("attributes > divisions"))
+    include(Number(node.textContent));
+  for (const value of values) {
+    if (integralTicks(value, common)) continue;
+    const denominator = denominators.find((d) => integralTicks(value, d));
+    if (!denominator)
+      throw Error("Use an exact position or duration supported by this score's timing grid.");
+    include(denominator);
   }
   let oldUnits = 1;
+  let hasDivision = false;
+  let needsOpeningDivision = false;
   const measures = children(part, "measure");
   for (const measure of measures) {
-    for (const el of Array.from(measure.children)) {
+    for (const el of measure.children) {
       const definition =
         el.localName === "attributes" ? child(el, "divisions") : undefined;
       if (definition) {
         oldUnits = Number(definition.textContent);
         definition.textContent = String(common);
+        hasDivision = true;
       }
-      for (const d of Array.from(el.querySelectorAll("duration,offset")))
+      const timings = el.querySelectorAll("duration,offset");
+      if (!hasDivision && timings.length) needsOpeningDivision = true;
+      if (common === oldUnits) continue;
+      for (const d of timings)
         d.textContent = String((Number(d.textContent) * common) / oldUnits);
       if (el.localName === "note")
         for (const name of ["attack", "release"]) {
@@ -518,7 +535,7 @@ function refineDivisionGrid(
         }
     }
   }
-  if (measures[0] && !measures[0].querySelector("attributes > divisions")) {
+  if (measures[0] && (!measures[0].querySelector("attributes > divisions") || needsOpeningDivision)) {
     const attrs = doc.createElement("attributes"),
       d = doc.createElement("divisions");
     d.textContent = String(common);
@@ -540,7 +557,7 @@ function reflowDuration(
 ) {
   const measure = target.parentElement!;
   const voiceKey = (el: Element) =>
-    `${txt(el, "voice", "1")}:${txt(el, "staff", "1")}`;
+    `${txt(el, "voice", "1")}:${noteStaff(el)}`;
   const events: {
     el: Element;
     start: number;
@@ -640,13 +657,11 @@ function reflowDuration(
 export function amendNote(
   xml: string,
   note: Note,
-  pitch: number,
+  pitch: number | null,
   duration: number,
 ): string {
   if (
-    !Number.isInteger(pitch) ||
-    pitch < 0 ||
-    pitch > 127 ||
+    (pitch !== null && (!Number.isInteger(pitch) || pitch < 0 || pitch > 127)) ||
     !Number.isFinite(duration) ||
     duration <= 0
   )
@@ -671,117 +686,74 @@ export function amendNote(
       }
       node.textContent = value;
     };
-    set(p, "step", names[pitch % 12]);
-    set(p, "alter", String(alters[pitch % 12]));
-    set(p, "octave", String(Math.floor(pitch / 12) - 1));
-    el.querySelector("accidental")?.remove();
+    if (pitch !== null) {
+      set(p, "step", names[pitch % 12]);
+      set(p, "alter", String(alters[pitch % 12]));
+      set(p, "octave", String(Math.floor(pitch / 12) - 1));
+      el.querySelector("accidental")?.remove();
+    }
     if (note.source.length === 1) {
-      let divisions = 1;
-      for (const m of children(el.parentElement!.parentElement!, "measure")) {
-        const d = m.querySelector("attributes > divisions");
-        if (d) divisions = Number(d.textContent);
-        if (m === el.parentElement) break;
-      }
-      let ticks = duration * divisions;
-      if (Math.abs(ticks - Math.round(ticks)) > 0.00001) {
-        divisions = refineDivisionGrid(
-          doc,
-          el.parentElement!.parentElement!,
-          duration,
-        );
-        ticks = duration * divisions;
-      }
       // A pitch-only edit preserves tuplets, dots, beams and the original type.
       if (Math.abs(duration - note.duration) > 0.000001) {
+        const part = el.parentElement!.parentElement!;
+        const divisions = refineDivisionGrid(doc, part, duration);
         reflowDuration(doc, el, duration, divisions);
-        for (const d of Array.from(
-          el.querySelectorAll("dot,time-modification,beam,notations > tuplet"),
-        ))
-          d.remove();
-        const types: Record<string, string> = {
-          "8": "breve",
-          "4": "whole",
-          "2": "half",
-          "1": "quarter",
-          "0.5": "eighth",
-          "0.25": "16th",
-          "0.125": "32nd",
-          "0.0625": "64th",
-          "0.03125": "128th",
-          "0.015625": "256th",
-          "0.0078125": "512th",
-          "0.00390625": "1024th",
-        };
-        let represented = false;
-        for (const [value, type] of Object.entries(types)) {
-          for (const [factor, dots, actual, normal] of [
-            [1, 0, 1, 1],
-            [1.5, 1, 1, 1],
-            [1.75, 2, 1, 1],
-            [2 / 3, 0, 3, 2],
-          ] as const) {
-            if (Math.abs(Number(value) * factor - duration) > 0.000001)
-              continue;
-            set(el, "type", type);
-            for (let i = 0; i < dots; i++) el.append(doc.createElement("dot"));
-            if (actual !== normal) {
-              const tm = doc.createElement("time-modification");
-              set(tm, "actual-notes", String(actual));
-              set(tm, "normal-notes", String(normal));
-              el.append(tm);
-            }
-            represented = true;
-            break;
-          }
-          if (represented) break;
-        }
-        if (!represented) el.querySelector("type")?.remove();
+        writeNoteRhythm(el, duration);
       }
     }
   }
-  for (const index of note.source) {
-    const el = nodes[index];
-    const pitch = el.querySelector("pitch");
-    if (pitch)
-      for (const tag of ["step", "alter", "octave"]) {
-        const child = pitch.querySelector(tag);
-        if (child) pitch.append(child);
-      }
-    const order = [
-      "grace",
-      "cue",
-      "chord",
-      "pitch",
-      "unpitched",
-      "rest",
-      "duration",
-      "tie",
-      "instrument",
-      "footnote",
-      "level",
-      "voice",
-      "type",
-      "dot",
-      "accidental",
-      "time-modification",
-      "stem",
-      "notehead",
-      "notehead-text",
-      "staff",
-      "beam",
-      "notations",
-      "lyric",
-      "play",
-      "listen",
-    ];
-    const children = Array.from(el.children);
-    children.sort(
-      (a, b) => order.indexOf(a.localName) - order.indexOf(b.localName),
-    );
-    const comments = Array.from(el.childNodes).filter((n) => n.nodeType === 8);
-    el.replaceChildren(...children, ...comments);
-  }
+  for (const index of note.source) orderNoteChildren(nodes[index]);
   return new XMLSerializer().serializeToString(doc);
+}
+
+export function writeNoteRhythm(note: Element, duration: number): boolean {
+  const doc = note.ownerDocument;
+  for (const el of note.querySelectorAll("type,dot,time-modification,beam,notations > tuplet"))
+    el.remove();
+  const types = ["breve", "whole", "half", "quarter", "eighth", "16th", "32nd",
+    "64th", "128th", "256th", "512th", "1024th"];
+  for (const [i, type] of types.entries()) {
+    for (const [factor, dots, triplet] of [
+      [1, 0, false], [1.5, 1, false], [1.75, 2, false], [2 / 3, 0, true],
+    ] as const) {
+      if (Math.abs(8 * 2 ** -i * factor - duration) > 0.000001) continue;
+      const typeNode = doc.createElement("type");
+      typeNode.textContent = type;
+      note.append(typeNode);
+      for (let j = 0; j < dots; j++) note.append(doc.createElement("dot"));
+      if (triplet) {
+        const tm = doc.createElement("time-modification");
+        const actual = doc.createElement("actual-notes");
+        const normal = doc.createElement("normal-notes");
+        actual.textContent = "3";
+        normal.textContent = "2";
+        tm.append(actual, normal);
+        note.append(tm);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+export function orderNoteChildren(note: Element) {
+  const pitch = child(note, "pitch");
+  if (pitch)
+    for (const tag of ["step", "alter", "octave"]) {
+      const node = child(pitch, tag);
+      if (node) pitch.append(node);
+    }
+  const order = [
+    "grace", "cue", "chord", "pitch", "unpitched", "rest", "duration", "tie",
+    "instrument", "footnote", "level", "voice", "type", "dot", "accidental",
+    "time-modification", "stem", "notehead", "notehead-text", "staff", "beam",
+    "notations", "lyric", "play", "listen",
+  ];
+  const elements = Array.from(note.children).sort(
+    (a, b) => order.indexOf(a.localName) - order.indexOf(b.localName),
+  );
+  const comments = Array.from(note.childNodes).filter((n) => n.nodeType === 8);
+  note.replaceChildren(...elements, ...comments);
 }
 function mergeIndependentPages(pages: string[], title: string) {
   const docs = pages.map(xmlDocument),
@@ -1013,8 +985,11 @@ export function amendOnset(xml: string, note: Note, newBeat: number): string {
     throw Error("Move the leading chord note to reposition the entire chord.");
   let divisions = 1;
   for (const measure of children(el.parentElement!.parentElement!, "measure")) {
-    const d = measure.querySelector("attributes > divisions");
-    if (d) divisions = Number(d.textContent);
+    for (const item of measure.children) {
+      if (item === el) break;
+      if (item.localName === "attributes" && child(item, "divisions"))
+        divisions = num(item, "divisions");
+    }
     if (measure === el.parentElement) break;
   }
   let ticks = Math.abs(delta) * divisions;

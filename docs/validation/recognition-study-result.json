@@ -1,0 +1,647 @@
+{
+  "method": "Local Chrome imports each fixture and runs the same OMR pipeline as the app.",
+  "beforePreprocessing": [
+    {
+      "id": "clean",
+      "input": "tests/fixtures/recognition-study.pdf",
+      "reference": "tests/fixtures/recognition-study.musicxml",
+      "pages": 1,
+      "pairWindowBeats": 0.25,
+      "errorToleranceBeats": 0.020833333333333332,
+      "measures": [
+        {
+          "measure": 1,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 2,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 3,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        }
+      ],
+      "warnings": [
+        "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+      ]
+    },
+    {
+      "id": "skewed",
+      "input": "tests/fixtures/recognition-study-skewed.jpg",
+      "reference": "tests/fixtures/recognition-study.musicxml",
+      "pages": 1,
+      "pairWindowBeats": 0.25,
+      "errorToleranceBeats": 0.020833333333333332,
+      "measures": [
+        {
+          "measure": 1,
+          "referenceNotes": 20,
+          "detectedNotes": 15,
+          "paired": 15,
+          "wrongPitch": 0,
+          "missing": 5,
+          "extra": 0,
+          "onsetErrors": 1,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0.01667,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 2,
+          "referenceNotes": 16,
+          "detectedNotes": 2,
+          "paired": 2,
+          "wrongPitch": 2,
+          "missing": 14,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 2,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0.66667
+        },
+        {
+          "measure": 3,
+          "referenceNotes": 20,
+          "detectedNotes": 12,
+          "paired": 6,
+          "wrongPitch": 4,
+          "missing": 14,
+          "extra": 6,
+          "onsetErrors": 0,
+          "durationErrors": 3,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0.33333
+        },
+        {
+          "measure": 4,
+          "referenceNotes": 0,
+          "detectedNotes": 14,
+          "paired": 0,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 14,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": null,
+          "durationMAEBeats": null
+        },
+        {
+          "measure": 5,
+          "referenceNotes": 0,
+          "detectedNotes": 3,
+          "paired": 0,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 3,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": null,
+          "durationMAEBeats": null
+        }
+      ],
+      "warnings": [
+        "Measure 1 exceeds its time signature; review voice timing.",
+        "Measure 4 exceeds its time signature; review voice timing.",
+        "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+      ]
+    },
+    {
+      "id": "low-contrast",
+      "input": "tests/fixtures/recognition-study-low-contrast.png",
+      "reference": "tests/fixtures/recognition-study.musicxml",
+      "pages": 1,
+      "pairWindowBeats": 0.25,
+      "errorToleranceBeats": 0.020833333333333332,
+      "measures": [
+        {
+          "measure": 1,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 2,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 3,
+          "referenceNotes": 20,
+          "detectedNotes": 19,
+          "paired": 19,
+          "wrongPitch": 1,
+          "missing": 1,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        }
+      ],
+      "warnings": [
+        "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+      ]
+    }
+  ],
+  "afterPreprocessing": [
+    {
+      "id": "clean",
+      "input": "tests/fixtures/recognition-study.pdf",
+      "reference": "tests/fixtures/recognition-study.musicxml",
+      "pages": 1,
+      "pairWindowBeats": 0.25,
+      "errorToleranceBeats": 0.020833333333333332,
+      "measures": [
+        {
+          "measure": 1,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 2,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 3,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        }
+      ],
+      "warnings": [
+        "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+      ]
+    },
+    {
+      "id": "skewed",
+      "input": "tests/fixtures/recognition-study-skewed.jpg",
+      "reference": "tests/fixtures/recognition-study.musicxml",
+      "pages": 1,
+      "pairWindowBeats": 0.25,
+      "errorToleranceBeats": 0.020833333333333332,
+      "measures": [
+        {
+          "measure": 1,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 2,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 3,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        }
+      ],
+      "warnings": [
+        "Restored 1 clipped grand-staff region(s) after verifying all five printed staff lines. Compare the recovered passage with the original.",
+        "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+      ]
+    },
+    {
+      "id": "low-contrast",
+      "input": "tests/fixtures/recognition-study-low-contrast.png",
+      "reference": "tests/fixtures/recognition-study.musicxml",
+      "pages": 1,
+      "pairWindowBeats": 0.25,
+      "errorToleranceBeats": 0.020833333333333332,
+      "measures": [
+        {
+          "measure": 1,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 2,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 3,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        }
+      ],
+      "warnings": [
+        "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+      ]
+    },
+    {
+      "id": "dense",
+      "input": "public/demos/sources/bach-invention-01-a4.pdf",
+      "reference": "public/demos/bach-invention-01.musicxml",
+      "pages": 2,
+      "pairWindowBeats": 0.25,
+      "errorToleranceBeats": 0.020833333333333332,
+      "measures": [
+        {
+          "measure": 1,
+          "referenceNotes": 18,
+          "detectedNotes": 18,
+          "paired": 18,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 2,
+          "referenceNotes": 21,
+          "detectedNotes": 21,
+          "paired": 21,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 3,
+          "referenceNotes": 24,
+          "detectedNotes": 24,
+          "paired": 24,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 4,
+          "referenceNotes": 23,
+          "detectedNotes": 23,
+          "paired": 23,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 5,
+          "referenceNotes": 23,
+          "detectedNotes": 23,
+          "paired": 23,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 6,
+          "referenceNotes": 24,
+          "detectedNotes": 24,
+          "paired": 24,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 7,
+          "referenceNotes": 19,
+          "detectedNotes": 19,
+          "paired": 19,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 8,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 9,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 10,
+          "referenceNotes": 20,
+          "detectedNotes": 20,
+          "paired": 20,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 11,
+          "referenceNotes": 24,
+          "detectedNotes": 24,
+          "paired": 24,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 12,
+          "referenceNotes": 23,
+          "detectedNotes": 23,
+          "paired": 23,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 1,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0.01087
+        },
+        {
+          "measure": 13,
+          "referenceNotes": 27,
+          "detectedNotes": 28,
+          "paired": 27,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 1,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 14,
+          "referenceNotes": 27,
+          "detectedNotes": 27,
+          "paired": 27,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 15,
+          "referenceNotes": 18,
+          "detectedNotes": 18,
+          "paired": 18,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 16,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 17,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 18,
+          "referenceNotes": 16,
+          "detectedNotes": 16,
+          "paired": 16,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 19,
+          "referenceNotes": 23,
+          "detectedNotes": 23,
+          "paired": 23,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 20,
+          "referenceNotes": 25,
+          "detectedNotes": 25,
+          "paired": 25,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 21,
+          "referenceNotes": 26,
+          "detectedNotes": 26,
+          "paired": 26,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        },
+        {
+          "measure": 22,
+          "referenceNotes": 5,
+          "detectedNotes": 5,
+          "paired": 5,
+          "wrongPitch": 0,
+          "missing": 0,
+          "extra": 0,
+          "onsetErrors": 0,
+          "durationErrors": 0,
+          "onsetMAEBeats": 0,
+          "durationMAEBeats": 0
+        }
+      ],
+      "warnings": [
+        "No initial numeric tempo was found. Playback defaults to 120 BPM; set tempo after reviewing the printed score."
+      ]
+    }
+  ]
+}

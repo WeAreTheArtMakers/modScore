@@ -1,3 +1,11 @@
+import { version } from "../package.json";
+
+import { advanceHistory, historyTarget, type HistoryMove, type ScoreSnapshot } from "./score-history";
+import { validAlignmentPoints, type SourceAlignment } from "./source-alignment";
+import {
+  accidentalNames, insertionTargets, insertWrittenNote, noteLetters, pitchChoiceForMidi,
+  readWrittenPitch, removeWrittenNote, replaceWrittenPitch, type PitchChoice, type InsertionTarget,
+} from "./note-editor";
 import { SourceComparison, sourceSeconds } from "./source-comparison";
 import type { ExpressionOptions } from "./performance";
 import { audioControls, type AudioSettings } from "./audio-controls";
@@ -25,6 +33,8 @@ import {
   noteName,
   beatToSeconds,
   type Timeline,
+  type Note,
+  type Measure,
 } from "./music";
 import { AudioEngine } from "./audio";
 import { Piano, colors } from "./piano";
@@ -33,6 +43,8 @@ import { Recognizer, normalise, pdfImages } from "./omr";
 import {
   listScores,
   saveScore,
+  updateScore,
+  type ScoreChanges,
   deleteScore,
   download,
   exportProject,
@@ -92,6 +104,14 @@ let urls: string[] = [],
   revision = 0,
   lastMeasure = -1,
   updateCleanup: (() => void) | undefined;
+let editorMeasure: number | undefined;
+let editOnScore = false;
+let showAlignment = false;
+let selectedHead: number | undefined;
+let previewRequest = 0;
+let stopPreview: (() => void) | undefined;
+let editSaving = false;
+let useMidiPitch = false;
 let importAbort: AbortController | undefined;
 let loopStart = 1,
   loopEnd = 4,
@@ -599,7 +619,7 @@ function libraryView() {
 function scanView() {
   const url = pages[pageIndex] ? URL.createObjectURL(pages[pageIndex]) : "";
   if (url) urls.push(url);
-  return `<div class="page-heading"><div><p class="eyebrow">ON-DEVICE OMR / CPU WASM</p><h1>${label("Scan sheet music")}</h1></div>${button("Add pages", "add-pages", "", "plus")}</div><div class="scan-layout"><div class="scan-preview">${url ? `<img src="${url}" alt="Score page ${pageIndex + 1}">` : `<div class="empty">${icon("scan")}<p>${label("Select a page to review before recognition.")}</p>${button("Camera", "capture", "primary", "scan")}${button("Import score", "add-pages", "", "import")}</div>`}</div><div class="scan-tools panel"><label>Title<input id="scan-title" value="${e(scanName)}" placeholder="Untitled score" ${busy ? "disabled" : ""}></label><div class="page-strip">${pages.map((_, i) => `<button data-page="${i}" class="${i === pageIndex ? "selected" : ""}" ${busy ? "disabled" : ""}>${i + 1}${i < scanXml.length ? " ✓" : ""}</button>`).join("")}</div><p class="muted">${label("Select a page to review before recognition.")}</p><div class="row">${button("Rotate", "rotate")}${button("Delete", "remove-page", "danger")}</div><label>${label("Deskew (degrees)")}<input id="deskew" type="number" min="-15" max="15" value="0" step="0.5"></label><label>${label("Crop left / top / right / bottom (%)")}</label><div class="crop-inputs">${[0, 0, 100, 100].map((v, i) => `<input id="crop-${i}" aria-label="${["Left", "Top", "Right", "Bottom"][i]} percent" type="number" min="0" max="100" value="${v}">`).join("")}</div><label class="check-label"><input id="enhance" type="checkbox">${label("Enhance contrast")}</label>${button("Apply to page", "apply-page")}<hr><p class="fine">homr performs staff detection, contrast normalization and staff dewarping. Review difficult perspective manually.</p><p class="fine">${language === "tr" ? "İlk kullanımda yaklaşık 158 MB model indirilir. Tanıma yereldir." : "First use downloads about 158 MB of models. Recognition stays on this device."}</p><div id="scan-status" class="status-text" role="status" aria-live="polite">${e(status)}</div>${busy ? `<progress aria-label="Recognition in progress"></progress>${button("Cancel", "cancel-scan", "danger")}` : button("Recognize locally", "recognize", "primary wide", "scan")}<p class="fine">${scanXml.length} / ${pages.length} pages recognized. ${scanXml.length ? button("Export", "export-progress", "text-button") : ""}</p></div></div>`;
+  return `<div class="page-heading"><div><p class="eyebrow">ON-DEVICE OMR / CPU WASM</p><h1>${label("Scan sheet music")}</h1></div>${button("Add pages", "add-pages", "", "plus")}</div><div class="scan-layout"><div class="scan-preview">${url ? `<img src="${url}" alt="Score page ${pageIndex + 1}">` : `<div class="empty">${icon("scan")}<p>${label("Select a page to review before recognition.")}</p>${button("Camera", "capture", "primary", "scan")}${button("Import score", "add-pages", "", "import")}</div>`}</div><div class="scan-tools panel"><label>Title<input id="scan-title" value="${e(scanName)}" placeholder="Untitled score" ${busy ? "disabled" : ""}></label><div class="page-strip">${pages.map((_, i) => `<button data-page="${i}" class="${i === pageIndex ? "selected" : ""}" ${busy ? "disabled" : ""}>${i + 1}${i < scanXml.length ? " ✓" : ""}</button>`).join("")}</div><p class="muted">${label("Select a page to review before recognition.")}</p><div class="row">${button("Rotate", "rotate")}${button("Delete", "remove-page", "danger")}</div><label>${label("Deskew (degrees)")}<input id="deskew" type="number" min="-15" max="15" value="0" step="0.5"></label><label>${label("Crop left / top / right / bottom (%)")}</label><div class="crop-inputs">${[0, 0, 100, 100].map((v, i) => `<input id="crop-${i}" aria-label="${["Left", "Top", "Right", "Bottom"][i]} percent" type="number" min="0" max="100" value="${v}">`).join("")}</div><label class="check-label"><input id="enhance" type="checkbox">${label("Enhance contrast")}</label>${button("Apply to page", "apply-page")}<hr><p class="fine">${editText("Recognition checks the page angle and contrast automatically. Crop the page or adjust rotation if the preview is hard to read.", "Tanıma sırasında sayfa açısı ve kontrast otomatik kontrol edilir. Önizleme zor okunuyorsa sayfayı kırp veya açısını düzelt.")}</p><p class="fine">${language === "tr" ? "İlk kullanımda yaklaşık 158 MB model indirilir. Tanıma yereldir." : "First use downloads about 158 MB of models. Recognition stays on this device."}</p><div id="scan-status" class="status-text" role="status" aria-live="polite">${e(status)}</div>${busy ? `<progress aria-label="Recognition in progress"></progress>${button("Cancel", "cancel-scan", "danger")}` : button("Recognize locally", "recognize", "primary wide", "scan")}<p class="fine">${scanXml.length} / ${pages.length} pages recognized. ${scanXml.length ? button("Export", "export-progress", "text-button") : ""}</p></div></div>`;
 }
 function voiceControls() {
   if (!timeline) return "";
@@ -615,25 +635,149 @@ function voiceControls() {
     )}</div><p class="fine">Staff/voice labels come from MusicXML. Staff 1/2 are not guaranteed to mean right/left hand.</p></details>`;
 }
 function playerView(pianoOnly = false) {
-  return `<div class="player-heading"><div><p class="eyebrow">${pianoOnly ? "INSTRUMENT / A0–C8" : project?.pages.length ? "RECOGNIZED SCORE" : "MUSIC WORKSPACE"}</p><h1>${e(pianoOnly ? t("Virtual piano") : project?.title || t("Workspace"))}</h1><p class="score-meta">${timeline && !pianoOnly ? `${timeline.writtenMeasures ?? timeline.measures.length} measures${timeline.writtenMeasures ? " · repeats included" : ""} · ${timeline.writtenMeasures ? new Set(timeline.notes.map((n) => n.source.join(","))).size : timeline.notes.length} notes · ${label(project?.reviewed ? "Saved on this device" : "Review required")}` : label("No uploads. No accounts. Yours.")}</p></div><div class="row">${project ? button("Export", "export", "", "download") : ""}${button("Fullscreen", "fullscreen", "text-button")}</div></div>${!pianoOnly && timeline ? demoBanner() : ""}${!pianoOnly && timeline ? comparisonPanel() : ""}${!pianoOnly && timeline ? `<div class="workspace-tabs" role="tablist">${["score", "compare", "original", "editor"].map((m) => `<button role="tab" aria-selected="${mode === m}" data-mode="${m}" class="${mode === m ? "selected" : ""}">${label(m === "score" ? "Score" : m === "compare" ? "Compare" : m === "original" ? "Original" : "Review notes")}</button>`).join("")}<span class="review-count">${timeline.warnings.length ? `${timeline.warnings.length} review notes` : "Review recognition before practice"}</span></div>${timeline.warnings.length ? `<details class="warnings"><summary>${timeline.warnings.length} playback / recognition notices</summary><ul>${timeline.warnings.map((w) => `<li>${e(w)}</li>`).join("")}</ul></details>` : ""}${reviewPanel()}<div class="score-workspace">${mode === "editor" ? editor() : mode === "original" ? originalView() : mode === "compare" ? `<div class="score-compare"><section><h3>${label("Original")}</h3>${originalView()}</section><section><h3>${label("Score")}</h3><div id="notation" class="notation"></div></section></div>` : `<div id="notation" class="notation" aria-label="Reconstructed sheet music"></div>`}</div><div class="measure-navigation"><span>${label("Select measures below to seek.")}</span><button class="text-button" data-action="pick-loop" aria-pressed="${loopPicking}">${language === "tr" ? "Döngü aralığı seç" : "Select loop range"}</button><div class="measure-strip">${timeline.measures.map((m) => `<button data-measure="${m.index}" title="Seek to measure ${e(m.number)}">${e(m.number)}</button>`).join("")}</div></div>${voiceControls()}` : pianoOnly ? "" : `<div class="empty">${icon("music")}<p>${label("Open a score to start listening.")}</p>${button("Import score", "import", "primary")}</div>`}<div class="instrument-strip"><label>${label("Instrument")}<select id="instrument" aria-label="${label("Instrument")}">${instrumentNames.map((n, i) => `<option value="${i}" ${i === audio.instruments.program ? "selected" : ""}>${String(i + 1).padStart(3, "0")} · ${n.replaceAll("_", " ")}</option>`).join("")}</select></label><label>${label("Transpose")}<input id="transpose" type="number" value="${audio.transpose}" min="-24" max="24"></label><label>${label("Volume")}<input id="volume" type="range" value="${audio.volume}" min="0" max="1" step="0.01"></label><div class="piano-mode">${button(roll ? "Keyboard" : "Piano roll", "toggle-roll", "text-button")}${button("Zoom", "zoom", "text-button")}</div></div>${keyboardControls()}<div id="piano" class="piano-scroll"></div><div class="keyboard-meta"><span>A0 — C8 · 88 keys</span><span id="active-names" aria-live="off"></span><label><input id="auto-keys" type="checkbox" ${auto ? "checked" : ""}>${label("Auto-position keys")}</label></div>${!pianoOnly ? transport()+expressionPanel() : ""}`;
+  return `<div class="player-heading"><div><p class="eyebrow">${pianoOnly ? "INSTRUMENT / A0–C8" : project?.pages.length ? "RECOGNIZED SCORE" : "MUSIC WORKSPACE"}</p><h1>${e(pianoOnly ? t("Virtual piano") : project?.title || t("Workspace"))}</h1><p class="score-meta">${timeline && !pianoOnly ? `${timeline.writtenMeasures ?? timeline.measures.length} measures${timeline.writtenMeasures ? " · repeats included" : ""} · ${timeline.writtenMeasures ? new Set(timeline.notes.map((n) => n.source.join(","))).size : timeline.notes.length} notes · ${label(project?.reviewed ? "Saved on this device" : "Review required")}` : label("No uploads. No accounts. Yours.")}</p></div><div class="row">${project ? button("Export", "export", "", "download") : ""}${button("Fullscreen", "fullscreen", "text-button")}</div></div>${!pianoOnly && timeline ? demoBanner() : ""}${!pianoOnly && timeline ? comparisonPanel() : ""}${!pianoOnly && timeline ? `<div class="workspace-tabs" role="tablist">${["score", "compare", "original", "editor"].map((m) => `<button role="tab" aria-selected="${mode === m}" data-mode="${m}" class="${mode === m ? "selected" : ""}">${label(m === "score" ? "Score" : m === "compare" ? "Compare" : m === "original" ? "Original" : "Review notes")}</button>`).join("")}<span class="review-count">${timeline.warnings.length ? `${timeline.warnings.length} review notes` : "Review recognition before practice"}</span></div>${timeline.warnings.length ? `<details class="warnings"><summary>${timeline.warnings.length} playback / recognition notices</summary><ul>${timeline.warnings.map((w) => `<li>${e(w)}</li>`).join("")}</ul></details>` : ""}${reviewPanel()}${scoreToolbar()}<div class="score-workspace">${mode === "editor" ? editor() : mode === "original" ? originalView() : mode === "compare" ? `<div class="score-compare"><section><h3>${label("Original")}</h3>${originalView()}</section><section><h3>${label("Score")}</h3><div id="notation" class="notation"></div></section></div>` : `<div id="notation" class="notation" aria-label="Reconstructed sheet music"></div>`}</div><div class="measure-navigation"><span>${label("Select measures below to seek.")}</span><button class="text-button" data-action="pick-loop" aria-pressed="${loopPicking}">${language === "tr" ? "Döngü aralığı seç" : "Select loop range"}</button><div class="measure-strip">${measureButtons()}</div></div>${voiceControls()}` : pianoOnly ? "" : `<div class="empty">${icon("music")}<p>${label("Open a score to start listening.")}</p>${button("Import score", "import", "primary")}</div>`}<div class="instrument-strip"><label>${label("Instrument")}<select id="instrument" aria-label="${label("Instrument")}">${instrumentNames.map((n, i) => `<option value="${i}" ${i === audio.instruments.program ? "selected" : ""}>${String(i + 1).padStart(3, "0")} · ${n.replaceAll("_", " ")}</option>`).join("")}</select></label><label>${label("Transpose")}<input id="transpose" type="number" value="${audio.transpose}" min="-24" max="24"></label><label>${label("Volume")}<input id="volume" type="range" value="${audio.volume}" min="0" max="1" step="0.01"></label><div class="piano-mode">${button(roll ? "Keyboard" : "Piano roll", "toggle-roll", "text-button")}${button("Zoom", "zoom", "text-button")}</div></div>${keyboardControls()}<div id="piano" class="piano-scroll"></div><div class="keyboard-meta"><span>A0 — C8 · 88 keys</span><span id="active-names" aria-live="off"></span><label><input id="auto-keys" type="checkbox" ${auto ? "checked" : ""}>${label("Auto-position keys")}</label></div>${!pianoOnly ? transport()+expressionPanel() : ""}`;
 }
+type MeasureReview = {
+  index: number;
+  number: string;
+  page: number;
+  reasons: string[];
+  issue: boolean;
+};
+let reviewCache: { xml: string; rows: Map<number, MeasureReview> } | undefined;
+function measureReviews() {
+  if (!project || !timeline || (!project.pages.length && !project.performance &&
+    !project.xml.includes("Automatic audio transcription"))) return undefined;
+  if (reviewCache?.xml === project.xml) return reviewCache.rows;
+  const rows = new Map<number, MeasureReview>();
+  const measures = writtenMeasures();
+  const written = new Map(measures.map((m) => [m.sourceMeasure ?? m.index, m]));
+  const mark = (m: Measure, reasons: string[], issue = false) => {
+    const index = m.sourceMeasure ?? m.index;
+    const row = rows.get(index) ?? { index: m.index, number: m.number, page: m.page, reasons: [], issue: false };
+    row.reasons = [...new Set([...row.reasons, ...reasons])];
+    row.issue ||= issue;
+    rows.set(index, row);
+  };
+  for (const r of reviewEncoding(project.xml)) {
+    const m = written.get(r.index);
+    if (!m) continue;
+    const reasons = [
+      ...r.issues,
+      ...(r.shortNotes >= 4 ? [editText("Short notes", "Kısa notalar")] : []),
+      ...(r.tuplets ? [editText("Tuplets", "Üçleme ve bölünmüş ritimler")] : []),
+      ...(r.cluster >= 3 ? [editText("Stacked chord tones", "Üst üste akor sesleri")] : []),
+    ];
+    if (reasons.length) mark(m, reasons, r.issues.length > 0);
+  }
+  const transitions = measures.flatMap((m, index) => {
+    const preceding = index > 0 ? measures[index - 1] : undefined;
+    return preceding && preceding.page !== m.page && Math.abs(preceding.beat + preceding.duration - m.beat) < 1e-6
+      ? [{ preceding, m }] : [];
+  });
+  if (transitions.length) {
+    const notes = new Map<number, Note[]>();
+    for (const note of timeline.notes) {
+      const group = notes.get(note.measure) ?? [];
+      group.push(note);
+      notes.set(note.measure, group);
+    }
+    const voicePitch = (note: Note) => `${note.track}:${note.staff}:${note.voice}:${note.pitch}`;
+    for (const { preceding, m } of transitions) {
+      const ending = new Set((notes.get(preceding.index) ?? [])
+        .filter((note) => Math.abs(note.beat + note.duration - m.beat) < 1e-6).map(voicePitch));
+      if (!(notes.get(m.index) ?? []).some((note) =>
+        Math.abs(note.beat - m.beat) < 1e-6 && ending.has(voicePitch(note)))) continue;
+      const reason = editText("Check ties across the page break", "Sayfa geçişindeki uzatma bağlarını kontrol et");
+      mark(preceding, [reason]);
+      mark(m, [reason]);
+    }
+  }
+  reviewCache = { xml: project.xml, rows };
+  return rows;
+}
+function measureButtons() {
+  const flags = measureReviews();
+  return timeline?.measures.map((m) => {
+    const flagged = flags?.get(m.sourceMeasure ?? m.index);
+    const title = flagged ? `${editText("Review measure", "Ölçüyü incele")} ${m.number}: ${flagged.reasons.join(" · ")}` :
+      `${editText("Seek to measure", "Ölçüye git")} ${m.number}`;
+    return `<button data-measure="${m.index}" class="${flagged ? "measure-review-mark" : ""}" title="${e(title)}" ${flagged ? `aria-label="${e(title)}"` : ""}>${e(m.number)}</button>`;
+  }).join("") ?? "";
+}
+
 function reviewPanel() {
-  if (
-    !project ||
-    (!project.pages.length &&
-      !project.xml.includes("Automatic audio transcription"))
-  )
-    return "";
-  const rows = reviewEncoding(project.xml),
-    issues = rows.filter((r) => r.issues.length);
-  return `<details class="encoding-review"><summary>${language === "tr" ? "Tanıma incelemesi gerekli" : "Recognition needs review"} · ${issues.length} ${language === "tr" ? "yapısal zamanlama uyarısı (doğruluk puanı değil)" : "structural timing notices (not an accuracy score)"}</summary><p>${language === "tr" ? "Bu denetim doğruluk puanı değildir. Bağları, susları, akorları ve metinleri orijinalle karşılaştırın. Otomatik kirişleme yalnızca çizimi düzeltir." : "This is not an accuracy score. Compare ties, rests, chords and text against the original. Automatic beaming only changes engraving."}</p><div class="audit-scroll"><table><thead><tr><th>Part / measure</th><th>Quarter beats</th><th>Encoded ties</th><th>Review</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${e(r.part)} / ${e(r.measure)} <button class="text-button" data-review-note="${timeline?.notes.findIndex((n) => n.track === r.part && n.measure === r.index) ?? -1}">${language === "tr" ? "İncele" : "Review"}</button></td><td>${r.encoded} / ${r.expected}</td><td>${r.ties}</td><td>${r.issues.map(e).join("<br>") || "No structural mismatch detected; image review required."}</td></tr>`).join("")}</tbody></table></div></details>`;
+  const flags = measureReviews();
+  if (!flags?.size) return "";
+  const rows = [...flags.values()].sort((a, b) => a.index - b.index);
+  const count = rows.filter((row) => row.issue).length;
+  const summary = editText("Measures to review", "İncelenecek ölçüler");
+  return `<details class="encoding-review">
+    <summary>${summary} · ${rows.length}</summary>
+    <p>${editText("Timing notices and notation cues help you choose where to compare with the original.", "Zamanlama uyarıları ve nota işaretleri orijinalle karşılaştırılacak ölçüleri gösterir.")}</p>
+    <div class="audit-scroll"><table><thead><tr>
+      <th>${editText("Measure", "Ölçü")}</th>
+      <th>${editText("Source page", "Kaynak sayfa")}</th>
+      <th>${editText("Review cues", "İnceleme işaretleri")}</th>
+    </tr></thead><tbody>${rows.map((row) => `<tr>
+      <td><button class="text-button" data-review-measure="${row.index}">${e(row.number)}</button></td>
+      <td>${project?.pages.length ? row.page + 1 : "–"}</td>
+      <td>${row.reasons.map(e).join("<br>")}</td>
+    </tr>`).join("")}</tbody></table></div>
+    ${count ? `<p class="fine">${count} ${editText("measures have a structural timing notice.", "ölçüde yapısal zamanlama uyarısı var.")}</p>` : ""}
+  </details>`;
 }
+function alignmentPanel(p: Project, recording: boolean) {
+  if (!timeline || !recording) return "";
+  const points = p.sourceAlignment?.points ?? [];
+  const current = [...timeline.measures].reverse().find((m) => m.beat <= comparison.anchor);
+  return `<fieldset class="source-marks">
+    <legend>${editText("Recording alignment points", "Kayıt hizalama noktaları")}</legend>
+    <p class="fine">${editText("Set where a measure starts in the recording. Mark repeat visits separately.", "Ölçünün kayıtta başladığı saniyeyi yaz. Tekrar geçişlerini ayrı işaretle.")}</p>
+    <div class="comparison-alignment">
+      <label>${editText("Measure start", "Ölçü başlangıcı")}<select id="mark-measure">
+        ${timeline.measures.map((m) => `<option value="${m.index}" ${current?.index === m.index ? "selected" : ""}>${e(m.number)}</option>`).join("")}
+      </select></label>
+      <label>${editText("Recording second", "Kayıttaki saniye")}<input id="mark-seconds" type="number" min="0" step="0.001"></label>
+    </div>
+    <div class="row source-mark-actions">
+      ${button(editText("Use current recording time", "Kayıttaki mevcut konumu al"), "mark-recording-time")}
+      ${button(editText("Save alignment point", "Hizalama noktasını kaydet"), "save-alignment-point", "primary")}
+    </div>
+    ${points.length ? `<ul class="source-mark-list">${points.map((point) => `<li><span>${editText("Measure", "Ölçü")} ${e(timeline!.measures[point.measure]?.number ?? String(point.measure + 1))} · ${point.seconds.toFixed(3)} s</span><button class="text-button" data-remove-mark="${point.measure}">${editText("Remove point", "Noktayı kaldır")}</button></li>`).join("")}</ul>` : ""}
+  </fieldset>`;
+}
+
 function comparisonPanel() {
-  if(!project||!timeline)return "";
-  const blob=project.originals.find(b=>b.type.startsWith("audio/"));
-  let url="";if(blob){url=URL.createObjectURL(blob);urls.push(url);}
-  const tr=language==="tr",offset=project.sourceAlignment?.offset??project.performance?.sourceStart??0,bpm=project.sourceAlignment?.bpm??project.performance?.bpm;
-  return `<section class="source-comparison panel" id="source-comparison"><div class="section-heading"><strong>${tr?"Kaynak ↔ Piyano":"Source ↔ Piano"}</strong><output id="ab-position"></output></div>${blob?`<div class="comparison-actions">${project.id==="modscore-demo-basic-v4"?button(tr?"13–14. ölçülere git":"Review measures 13–14","ab-passage","text-button"):""}${button(tr?"Buradan karşılaştır":"Compare from here","ab-here", "text-button")}${button(tr?"A · Kaydı dinle":"A · Listen to source","ab-source")}${button(tr?"B · Piyanoyu dinle":"B · Listen to piano","ab-piano")}${button(tr?"Durdur":"Pause comparison","ab-pause","text-button")}</div><audio id="original-audio" controls src="${url}" preload="metadata"></audio>`:`<p class="fine">${tr?"Aynı nota konumundan karşılaştırmak için bir kayıt ekleyin.":"Attach a recording to compare from the same score position."}</p>${project.id==="modscore-demo-basic-v4"?button(tr?"Demo kaydını yükle":"Load demo recording","ab-load-demo"):""}`}<details><summary>${tr?"Kaydı bağla ve hizala":"Attach and align recording"}</summary><div class="comparison-alignment"><label>${tr?"Ses dosyası":"Recording"}<input id="comparison-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac"></label><label>${tr?"İlk nota (saniye)":"First score beat (seconds)"}<input id="source-offset" type="number" min="-3600" max="3600" step="0.001" value="${offset}"></label><label>${tr?"Kayıt BPM (isteğe bağlı)":"Recording BPM (optional)"}<input id="source-bpm" type="number" min="20" max="300" value="${bpm??""}" placeholder="Score tempo"></label></div><p class="fine">${tr?"İki düğme de seçtiğiniz aynı noktadan başlar. Kaynakta başka bir noktaya gidip Buradan karşılaştır ile yeni başlangıç seçebilirsiniz. Kaynak özgün tonunda kalır; tempo ayarı dinleme hızına uygulanır.":"Both buttons replay from the selected anchor. Seek in the recording and choose Compare from here to set another anchor. The source keeps its original pitch; tempo controls listening speed."}</p></details></section>`;
+  if (!project || !timeline) return "";
+  const blob = project.originals.find((b) => b.type.startsWith("audio/"));
+  const url = blob ? URL.createObjectURL(blob) : "";
+  if (url) urls.push(url);
+  const tr = language === "tr";
+  const offset = project.sourceAlignment?.offset ?? project.performance?.sourceStart ?? 0;
+  const bpm = project.sourceAlignment?.bpm ?? project.performance?.bpm;
+  const demo = project.id === "modscore-demo-basic-v4";
+  return `<section class="source-comparison panel" id="source-comparison">
+    <div class="section-heading"><strong>${tr ? "Kaynak ↔ Piyano" : "Source ↔ Piano"}</strong><output id="ab-position"></output></div>
+    ${blob ? `<div class="comparison-actions">
+      ${demo ? button(tr ? "13–14. ölçülere git" : "Review measures 13–14", "ab-passage", "text-button") : ""}
+      ${button(tr ? "Buradan karşılaştır" : "Compare from here", "ab-here", "text-button")}
+      ${button(tr ? "A · Kaydı dinle" : "A · Listen to source", "ab-source")}
+      ${button(tr ? "B · Piyanoyu dinle" : "B · Listen to piano", "ab-piano")}
+      ${button(tr ? "Durdur" : "Pause comparison", "ab-pause", "text-button")}
+    </div><audio id="original-audio" controls src="${url}" preload="metadata"></audio>` :
+    `<p class="fine">${tr ? "Aynı nota konumundan karşılaştırmak için bir kayıt ekleyin." : "Attach a recording to compare from the same score position."}</p>${demo ? button(tr ? "Demo kaydını yükle" : "Load demo recording", "ab-load-demo") : ""}`}
+    <details id="alignment-details" ${showAlignment ? "open" : ""}>
+      <summary>${tr ? "Kaydı bağla ve hizala" : "Attach and align recording"}</summary>
+      <div class="comparison-alignment">
+        <label>${tr ? "Ses dosyası" : "Recording"}<input id="comparison-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac"></label>
+        <label>${tr ? "İlk nota (saniye)" : "First score beat (seconds)"}<input id="source-offset" type="number" min="-3600" max="3600" step="0.001" value="${offset}"></label>
+        <label>${tr ? "Kayıt BPM (isteğe bağlı)" : "Recording BPM (optional)"}<input id="source-bpm" type="number" min="20" max="300" value="${bpm ?? ""}" placeholder="Score tempo"></label>
+      </div>
+      <p class="fine">${tr ? "İki düğme de seçilen konumu kullanır. Hizalama noktaları arasındaki konumlar hesaplanır." : "Both buttons use the selected position. Positions between saved points are interpolated."}</p>
+      ${alignmentPanel(project, !!blob)}
+    </details>
+  </section>`;
 }
 function expressionPanel(){const tr=language==="tr";return `<details class="expression-settings panel"><summary>${tr?"Süsleme ve ifade çalımı":"Ornaments & expression"}</summary><div class="comparison-alignment"><label>${tr?"Yorum":"Interpretation"}<select id="expression-style"><option value="auto" ${expressionSettings.style==="auto"?"selected":""}>${tr?"Besteciye göre":"Follow composer"}</option><option value="baroque" ${expressionSettings.style==="baroque"?"selected":""}>Baroque</option><option value="classical" ${expressionSettings.style==="classical"?"selected":""}>Classical</option><option value="literal" ${expressionSettings.style==="literal"?"selected":""}>${tr?"Yalın ana notalar":"Literal principal notes"}</option></select></label><label>${tr?"Fermata uzatma":"Fermata stretch"}<input id="fermata-stretch" type="number" min="1" max="2.5" step="0.05" value="${expressionSettings.fermata}"></label></div><p class="fine">${tr?"Tril ve mordentler tona/değiştiricilere göre, arpejler işaretin yönünde çalınır. Barok yorumda belirtilmemiş triller üst komşudan; klasik yorumda ana notadan başlar. Yorum icracı ve edisyona göre değişebilir. Aynı yorum piyano, MIDI ve WAV için kullanılır.":"Trills/mordents follow the key and explicit accidentals; arpeggios follow their marked direction. Unspecified trills start above in Baroque and on the main note in Classical. Interpretations vary by performer and edition. Piano, MIDI and WAV use the same realization."}</p></details>`;}
 function originalView() {
@@ -708,38 +852,244 @@ async function drawSourceExcerpt() {
     bitmap.close();
   }
 }
+const rhythms = [
+  [4, "Whole", "Birlik"], [2, "Half", "İkilik"], [1, "Quarter", "Dörtlük"],
+  [0.5, "Eighth", "Sekizlik"], [0.25, "16th", "Onaltılık"],
+  [0.125, "32nd", "Otuzikilik"], [0.0625, "64th", "Altmışdörtlük"],
+  [0.03125, "128th", "Yüzyirmisekizlik"], [1.5, "Dotted quarter", "Noktalı dörtlük"],
+  [0.75, "Dotted eighth", "Noktalı sekizlik"], [1 / 3, "Eighth triplet", "Sekizlik üçleme"],
+  [1 / 6, "16th triplet", "Onaltılık üçleme"], [1 / 12, "32nd triplet", "Otuzikilik üçleme"],
+] as const;
+const editText = (en: string, tr: string) => language === "tr" ? tr : en;
+const rhythmOptions = (duration: number) => rhythms.map(([value, en, tr]) =>
+  `<option value="${value}" ${value === duration ? "selected" : ""}>${editText(en, tr)}</option>`,
+).join("");
+const writtenMeasures = () => timeline?.measures.filter((m) => (m.pass ?? 1) === 1) ?? [];
+const quarterBeatsPerPulse = (measure: Measure) =>
+  4 / (measure.meter?.beatType || 4);
+const selectedScoreNote = () => timeline?.notes[selectedNote];
+
+function selectEditorMeasure(index: number) {
+  const measure = timeline?.measures[index];
+  if (!timeline || !measure) return;
+  editorMeasure = measure.sourceMeasure ?? measure.index;
+  const written = writtenMeasures().find((m) => (m.sourceMeasure ?? m.index) === editorMeasure);
+  const note = timeline.notes.findIndex((n) => n.measure === written?.index);
+  selectedNote = note;
+}
+
+function pitchPalette(
+  id: string, step = "C", octave = 4, alter: number | "keep" | "key" = "key",
+) {
+  const names = editText("C D E F G A B", "Do Re Mi Fa Sol La Si").split(" ");
+  const accidentals = [
+    ["key", "Key signature", "Donanıma göre"], ["0", "♮ Natural", "♮ Natürel"],
+    ["1", "♯ Sharp", "♯ Diyez"], ["-1", "♭ Flat", "♭ Bemol"],
+    ["2", "𝄪 Double sharp", "𝄪 Çift diyez"], ["-2", "𝄫 Double flat", "𝄫 Çift bemol"],
+  ];
+  if (id !== "add") accidentals.unshift(["keep", "Keep as written", "Mevcut işaret"]);
+  return `<div class="note-palette">
+    <label>${editText("Note name", "Nota adı")}<select id="${id}-step">${noteLetters.map((name, i) => `<option value="${name}" ${name === step ? "selected" : ""}>${names[i]}</option>`).join("")}</select></label>
+    <label>${editText("Octave", "Oktav")}<input id="${id}-octave" type="number" min="0" max="9" step="1" value="${octave}"></label>
+    <label>${editText("Accidental", "Değiştirici")}<select id="${id}-accidental">${accidentals.map(([value, en, tr]) => `<option value="${value}" ${value === String(alter) ? "selected" : ""}>${editText(en, tr)}</option>`).join("")}</select></label>
+  </div>`;
+}
+
+function addNoteFields(doc: Document, measureIndex: number, note?: Note) {
+  const targets = insertionTargets(doc, measureIndex);
+  const names = new Map(timeline!.tracks.map((track) => [track.id, track.name]));
+  const initial = targets.findIndex((target) => target.part === note?.track &&
+    target.staff === note.staff && target.voice === note.voice);
+  return targets.map((target, i) => `<option value="${e(JSON.stringify(target))}" ${i === initial ? "selected" : ""}>${e(names.get(target.part) ?? target.part)} · ${editText("Staff", "Dizek")} ${target.staff} · ${editText("Voice", "Ses")} ${e(target.voice)}</option>`).join("");
+}
+
+function historyButtons() {
+  const history = project?.editHistory;
+  return [
+    historyTarget(history, "undo") ?
+      button(editText("Undo last note edit", "Son nota düzenlemesini geri al"), "undo-note") : "",
+    historyTarget(history, "redo") ?
+      button(editText("Redo note edit", "Nota düzenlemesini yinele"), "redo-note") : "",
+  ].join("");
+}
+
+function scoreToolbar() {
+  if (!project || !timeline || view !== "player" || (mode !== "score" && mode !== "compare")) return "";
+  return `<div class="score-edit-toolbar">
+    <button data-action="toggle-score-edit" aria-pressed="${editOnScore}">${editText("Edit on score", "Partisyon üzerinde düzenle")}</button>
+    ${historyButtons()}
+    <div id="score-note-inspector"></div>
+  </div>`;
+}
+
+function paintScoreNote() {
+  const inspector = document.getElementById("score-note-inspector");
+  if (!inspector || !editOnScore || !project) return;
+  const note = selectedHead === undefined ? undefined : selectedScoreNote();
+  const node = note ? xmlDocument(project.xml).querySelectorAll("part > measure > note")[note.source[0]] : undefined;
+  if (!node || !note) {
+    inspector.innerHTML = `<p class="fine">${editText("Select a notehead to hear and edit it.", "Dinlemek ve düzenlemek için nota başını seç.")}</p>`;
+    return;
+  }
+  const pitch = readWrittenPitch(node);
+  inspector.innerHTML = `<div class="inline-score-note">
+    <div class="inline-note-pitch">${pitchPalette("inline", pitch.step, pitch.octave, "keep")}</div>
+    <div class="row">${button(editText("Hear note", "Notayı dinle"), "hear-note")}
+    ${button(editText("Save pitch", "Perdeyi kaydet"), "save-inline-note", "primary")}
+    ${button(editText("Delete note", "Notayı sil"), "delete-inline-note", "danger")}</div>
+  </div>`;
+}
+
+function cancelPreview() {
+  previewRequest++;
+  stopPreview?.();
+  stopPreview = undefined;
+}
+async function auditionNote(note: Note) {
+  cancelPreview();
+  comparison.pause();
+  audio.pause();
+  const pitch = note.pitch + audio.transpose;
+  if (pitch < 0 || pitch > 127) return;
+  const request = previewRequest;
+  const stop = await audio.touch(pitch, note.velocity);
+  if (request !== previewRequest) return stop();
+  stopPreview = stop;
+  window.setTimeout(() => {
+    if (request === previewRequest) cancelPreview();
+  }, 420);
+}
+sheet.onSelect = (source) => {
+  if (!editOnScore || !timeline || editSaving) return;
+  const index = timeline.notes.findIndex((note) => note.source.includes(source));
+  if (index < 0) return;
+  selectedNote = index;
+  selectedHead = source;
+  sheet.onManualBrowse();
+  sheet.setEditing(true, source);
+  paintScoreNote();
+  safe(() => auditionNote(timeline!.notes[index]))();
+};
+
 function editor() {
-  if (!timeline) return "";
-  const n = timeline.notes[Math.min(selectedNote, timeline.notes.length - 1)];
-  if (!n) return "<p>No playable notes to edit.</p>";
-  return `<div class="editor"><div><h2>${label("Review notes")}</h2><p class="muted">Compare the original with reconstructed notation. Corrections update playback and MusicXML.</p><label>Note<select id="edit-select">${timeline.notes.map((n, i) => `<option value="${i}" ${i === selectedNote ? "selected" : ""}>Measure ${n.measure + 1} · ${noteName(n.pitch)} · staff ${n.staff} / voice ${e(n.voice)} · beat ${n.beat}</option>`).join("")}</select></label><div class="edit-fields"><label>Score tempo (BPM)<input id="score-tempo" type="number" min="20" max="300" value="${timeline.tempos[0].bpm}"></label><label>Tempo instruction (from original)<input id="tempo-words" placeholder="Slowly, steady tempo"></label>${button("Save score tempo", "save-tempo")}</div><div class="edit-fields"><label>${label("Pitch")}<select id="edit-pitch">${Array.from({ length: 128 }, (_, p) => `<option value="${p}" ${p === n.pitch ? "selected" : ""}>${noteName(p)} · MIDI ${p}</option>`).join("")}</select></label><label>Rhythm preset<select id="edit-rhythm"><option value="">Keep encoded rhythm</option>${[
-    [4, "Whole"],
-    [2, "Half"],
-    [1, "Quarter"],
-    [0.5, "Eighth"],
-    [0.25, "16th"],
-    [0.125, "32nd"],
-    [0.0625, "64th"],
-    [0.03125, "128th"],
-    [1 / 3, "Eighth triplet"],
-    [1 / 6, "16th triplet"],
-    [1 / 12, "32nd triplet"],
-  ]
-    .map(([v, name]) => `<option value="${v}">${name}</option>`)
-    .join(
-      "",
-    )}</select></label><label>${label("Duration (beats)")}<input id="edit-duration" type="number" min="0.00390625" step="any" value="${n.duration}"></label><label>${label("Start (beats)")}<input id="edit-onset" type="number" min="0" step="any" value="${n.beat}"></label></div><p class="fine">Durations change subsequent timing in the same MusicXML voice. Tied durations/onsets require an external notation editor. Move a leading chord note to move its chord. Onset edits stay inside the original measure. Accidentals are encoded by the selected chromatic pitch.</p><div class="row">${button("Apply correction", "correct", "primary")}${button("Tie to next note", "tie-next")}${button("Remove tie", "untie")}${button("Mark reviewed", "reviewed")}</div></div><div class="review-original"><figure id="source-excerpt" hidden><canvas id="source-canvas"></canvas><figcaption></figcaption></figure>${originalView()}</div></div>`;
+  if (!timeline || !project) return "";
+  const doc = xmlDocument(project.xml);
+  const n = selectedScoreNote();
+  const measures = writtenMeasures();
+  const selectedMeasure = measures.find((m) =>
+    (m.sourceMeasure ?? m.index) === editorMeasure,
+  ) ?? measures.find((m) => m.index === n?.measure) ?? measures[0];
+  const measureIndex = selectedMeasure ? selectedMeasure.sourceMeasure ?? selectedMeasure.index : 0;
+  const noteNodes = doc.querySelectorAll("part > measure > note");
+  const pitch = n ? readWrittenPitch(noteNodes[n.source[0]]) : undefined;
+  const seen = new Set<number>();
+  const notes = timeline.notes.flatMap((note, i) => {
+    if (seen.has(note.source[0])) return [];
+    seen.add(note.source[0]);
+    const m = timeline!.measures[note.measure];
+    const written = readWrittenPitch(noteNodes[note.source[0]]);
+    const symbol = ({[-2]: "𝄫", [-1]: "♭", 0: "", 1: "♯", 2: "𝄪"})[written.alter] ?? "";
+    return [`<option value="${i}" ${i === selectedNote ? "selected" : ""}>${editText("Measure", "Ölçü")} ${e(m.number)} · ${e(written.step)}${symbol}${written.octave} · ${editText("staff", "dizek")} ${note.staff} / ${editText("voice", "ses")} ${e(note.voice)} · ${+(note.beat - m.beat + 1).toFixed(4)}</option>`];
+  }).join("");
+  return `<div class="editor"><div class="note-editor-controls">
+    <h2>${editText("Edit notes", "Nota düzenle")}</h2>
+    ${n && pitch ? `
+      <label>${editText("Select note", "Nota seç")}<select id="edit-select">${notes}</select></label>
+      ${pitchPalette("edit", pitch.step, pitch.octave, pitch.accidental === accidentalNames[pitch.alter] ? pitch.alter : "keep")}
+      <details class="note-editor-detail"><summary>${editText("MIDI pitch and timing", "MIDI perdesi ve zamanlama")}</summary>
+        <div class="edit-fields">
+          <label>${label("Pitch")}<select id="edit-pitch">${Array.from({ length: 128 }, (_, p) => `<option value="${p}" ${p === n.pitch ? "selected" : ""}>${noteName(p)} · MIDI ${p}</option>`).join("")}</select></label>
+          <label>${editText("Rhythm preset", "Ritim kalıbı")}<select id="edit-rhythm"><option value="">${editText("Keep encoded rhythm", "Mevcut ritmi koru")}</option>${rhythmOptions(0)}</select></label>
+          <label>${label("Duration (beats)")}<input id="edit-duration" type="number" min="0.00390625" step="any" value="${n.duration}"></label>
+          <label>${label("Start (beats)")}<input id="edit-onset" type="number" min="0" step="any" value="${n.beat}"></label>
+        </div>
+        <p class="fine">${editText("Changing duration moves later notes in the same voice. Moving a chord requires selecting its leading note.", "Süreyi değiştirmek aynı sesteki sonraki notaları kaydırır. Akorun yerini değiştirmek için ilk akor sesini seç.")}</p>
+        <div class="row">${button("Tie to next note", "tie-next")}${button("Remove tie", "untie")}</div>
+      </details>
+      <div class="row note-editor-actions">
+        ${button(editText("Apply correction", "Düzeltmeyi uygula"), "correct", "primary")}
+        ${button(editText("Delete note", "Notayı sil"), "delete-note", "danger")}
+      </div>` : `<p>${editText("This score has no playable notes. Use the palette to add one.", "Bu partide çalınabilir nota yok. Paletten nota ekleyebilirsin.")}</p>`}
+    ${measures.length ? `<details class="note-editor-detail" id="add-note-panel" ${n ? "" : "open"}>
+      <summary>${editText("Add a note", "Nota ekle")}</summary>
+      <div class="edit-fields">
+        <label>${editText("Measure", "Ölçü")}<select id="add-measure">${measures.map((m) => `<option value="${m.sourceMeasure ?? m.index}" ${m === selectedMeasure ? "selected" : ""}>${e(m.number)}</option>`).join("")}</select></label>
+        <label>${editText("Part, staff and voice", "Parti, dizek ve ses")}<select id="add-target">${addNoteFields(doc, measureIndex, n)}</select></label>
+        <label>${editText("Beat in measure", "Ölçü içindeki vuruş")}<input id="add-beat" type="number" min="1" step="any" value="${n && selectedMeasure?.index === n.measure ? +((n.beat - selectedMeasure.beat) / quarterBeatsPerPulse(selectedMeasure) + 1).toFixed(8) : 1}"></label>
+        <label>${editText("Duration", "Süre")}<select id="add-duration">${rhythmOptions(1)}</select></label>
+      </div>
+      ${pitchPalette("add", pitch?.step ?? "C", pitch?.octave ?? 4)}
+      <p class="fine">${editText("Beat 1 starts the measure. Beat units follow its time signature. Matching timing adds a chord tone. Other overlaps use a separate voice.", "1, ölçünün başlangıcıdır. Vuruş birimi ölçü işaretine bağlıdır. Başlangıcı ve süresi eşleşen nota akora katılır. Diğer çakışmalar ayrı sese yazılır.")}</p>
+      ${button(editText("Insert note", "Notayı yerleştir"), "add-note", "primary")}
+    </details>` : ""}
+    <div class="row note-editor-actions">
+      ${historyButtons()}
+      ${button("Mark reviewed", "reviewed")}
+    </div>
+    <details class="note-editor-detail"><summary>${editText("Score tempo", "Partisyon temposu")}</summary>
+      <div class="edit-fields">
+        <label>Score tempo (BPM)<input id="score-tempo" type="number" min="20" max="300" value="${timeline.tempos[0].bpm}"></label>
+        <label>${editText("Tempo instruction", "Tempo ifadesi")}<input id="tempo-words" placeholder="Slowly, steady tempo"></label>
+      </div>${button("Save score tempo", "save-tempo")}
+    </details>
+  </div><div class="review-original"><figure id="source-excerpt" hidden><canvas id="source-canvas"></canvas><figcaption></figcaption></figure>${originalView()}</div></div>`;
 }
 function transport() {
   const tr = language === "tr";
   return `<div class="transport"><div class="transport-main"><div class="transport-buttons"><button data-action="restart" class="icon-button" aria-label="${label("Restart")}">${icon("restart")}</button><button data-action="play" id="play" class="play-button" aria-label="${label(audio.playing ? "Pause" : "Play")}">${icon(audio.playing ? "pause" : "play")}</button><button data-action="stop" class="icon-button" aria-label="${label("Stop")}">${icon("stop")}</button></div><output id="clock">0:00 / ${clock(timeline ? beatToSeconds(timeline.duration, audio.performance!.tempos, audio.speed) : 0)}</output><input id="seek" type="range" min="0" max="${timeline?.duration || 1}" step="0.01" value="${audio.position}" aria-label="Seek playback"><label class="tempo-label">${label("Tempo")}<span><input id="tempo" type="number" min="20" max="300" value="${Math.round((timeline?.tempos[0]?.bpm || 120) * audio.speed)}"> BPM</span></label></div><div class="transport-options"><label class="follow-control"><input id="follow" type="checkbox" ${follow ? "checked" : ""}>${label("Follow score")}</label><section class="practice-loop" id="practice-loop"><label class="practice-toggle"><input id="loop-on" type="checkbox" ${audio.loop ? "checked" : ""} aria-label="Enable measure loop">${label("Loop measures")}</label><div class="loop-fields"><input id="loop-start" type="number" min="1" max="${timeline?.measures.length || 1}" value="${loopStart}" aria-label="Loop first measure"><span>–</span><input id="loop-end" type="number" min="1" max="${timeline?.measures.length || 1}" value="${loopEnd}" aria-label="Loop last measure"><button data-action="loop-current" class="text-button">${tr ? "Bu ölçü" : "This measure"}</button></div><output id="loop-status" class="fine"></output></section><section class="practice-metronome" id="practice-metronome"><label class="practice-toggle"><input id="metronome" type="checkbox" ${audio.metronome ? "checked" : ""}>${label("Metronome")}</label><div class="metronome-mini"><div id="metro-pulses" class="metro-pulses" aria-hidden="true"></div><output id="metro-count" aria-label="Metronome beat"></output><label class="metronome-volume-label"><span>${tr ? "Ses" : "Volume"}</span><input id="metronome-volume" aria-label="Metronome volume" type="range" min="0" max="1" step="0.01" value="${audio.metronomeVolume}"></label><output id="metronome-level">${Math.round(audio.metronomeVolume * 100)}%</output></div></section></div></div>`;
 }
+interface InstallPrompt extends Event {
+  prompt(): Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+let installPrompt: InstallPrompt | undefined;
+const standalone = matchMedia("(display-mode: standalone)");
+let installed = standalone.matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+function installPanel() {
+  const tr = language === "tr";
+  return `<section class="panel" id="installation">
+    <h2>${tr ? "Uygulamayı yükle" : "Install modScore"}</h2>
+    <p id="installation-state" role="status" ${installed ? "" : "hidden"}>${tr ? "modScore ana ekran uygulaması olarak açıldı." : "modScore is open as an installed app."}</p>
+    <div id="installation-steps" ${installed ? "hidden" : ""}>
+      <div id="native-install" ${installPrompt ? "" : "hidden"}>${button(tr ? "Yükle" : "Install app", "install-app", "primary", "download")}</div>
+      <p><strong>iPhone · Safari</strong> ${tr ? "Paylaş → Ana Ekrana Ekle. Gösteriliyorsa Web Uygulaması Olarak Aç’ı etkinleştir." : "Share → Add to Home Screen. Turn on Open as Web App if shown."}</p>
+      <p><strong>Android · Chrome</strong> ${tr ? "Menü ⋮ → Ana ekrana ekle → Yükle." : "Menu ⋮ → Add to home screen → Install."}</p>
+    </div>
+    <p class="fine">${tr ? "modScore’u ana ekran simgesinden aç. Çevrimdışı kullanım için bu ekrandan uygulamayı hazırla. Çevrimdışı nota taraması için tanıma modellerini de indir." : "Open modScore from its home-screen icon. Prepare offline use on this screen and download the recognition models to scan sheet music offline."}</p>
+  </section>`;
+}
+function refreshInstallation() {
+  const state = document.getElementById("installation-state");
+  const steps = document.getElementById("installation-steps");
+  const prompt = document.getElementById("native-install");
+  if (state) state.hidden = !installed;
+  if (steps) steps.hidden = installed;
+  if (prompt) prompt.hidden = !installPrompt;
+}
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event as InstallPrompt;
+  refreshInstallation();
+});
+window.addEventListener("appinstalled", () => {
+  installed = true;
+  installPrompt = undefined;
+  refreshInstallation();
+});
+standalone.addEventListener("change", () => {
+  if (standalone.matches) {
+    installed = true;
+    refreshInstallation();
+  }
+});
 function settings() {
-  return `<div class="page-heading"><div><p class="eyebrow">YOUR DEVICE / YOUR MUSIC</p><h1>${label("Settings")}</h1></div></div><div class="settings-grid">${hardwarePanel()}<section class="panel"><h2>Appearance</h2><label>${label("Theme")}<select id="theme"><option value="dark" ${theme === "dark" ? "selected" : ""}>${label("Dark")}</option><option value="light" ${theme === "light" ? "selected" : ""}>${label("Light")}</option></select></label><label>${label("Language")}<select id="language"><option value="en" ${language === "en" ? "selected" : ""}>English</option><option value="tr" ${language === "tr" ? "selected" : ""}>Türkçe</option></select></label></section><section class="panel"><h2>${label("Offline assets")}</h2><p id="offline-detail">Checking local assets…</p><p id="storage-detail" class="muted"></p><div class="stack">${button("Prepare offline use", "offline", "primary")}${button("Download recognition models", "models")}${button("Request persistent storage", "persist")}${button("Clear recognition models", "clear-models", "text-button danger")}</div><div id="asset-status" role="status"></div><p class="fine">The app shell, piano samples and recognition assets can be stored offline. Other GM instruments download on first selection. Only the piano and latest selected bank are retained. Browser storage can be evicted.</p></section><section class="panel"><h2>${label("Install on iPhone")}</h2><ol><li>Open the app’s HTTPS address in Safari.</li><li>Tap Share, then Add to Home Screen.</li><li>Open modScore from its icon and prepare offline use there.</li><li>Keep the app open until downloads complete; export a backup of your library.</li></ol><p class="fine">No App Store or Apple developer account. Safari and installed apps may have separate storage. Physical iPhone XS / iOS 18 testing is pending.</p></section><section class="panel"><h2>${label("Privacy")}</h2><p>Photographs, scores, recognition and playback stay on your device. No accounts, analytics, ads or cloud uploads.</p><p>Initial model/library assets come from this host. Optional instrument downloads request a pinned FluidR3 bank from GitHub; no score data is sent.</p><h3>${label("Source & licenses")}</h3><p><a href="${assetPath("about/")}" target="_blank" rel="noopener">About modScore · Setup guide</a> · <a href="https://github.com/WeAreTheArtMakers/modScore" target="_blank" rel="noopener">GitHub</a></p><p>modScore is free software under AGPL-3.0-only, without warranty. You may modify and redistribute under the license.</p><div class="row"><a href="${assetPath("source.tar.gz")}" download>Corresponding source</a><a href="${assetPath("LICENSE")}" target="_blank" rel="noopener">AGPL-3.0</a><a href="${assetPath("THIRD_PARTY_NOTICES.md")}" target="_blank" rel="noopener">Attributions</a></div><p class="fine">Recognition: Partsong / homr-rs / homr. Model training-data provenance caveats are documented in the notices. Samples: FluidR3, Frank Wen, CC BY 3.0.</p></section></div>`;
+  return `<div class="page-heading"><div><p class="eyebrow">YOUR DEVICE / YOUR MUSIC</p><h1>${label("Settings")}</h1></div></div><div class="settings-grid">${hardwarePanel()}<section class="panel"><h2>Appearance</h2><label>${label("Theme")}<select id="theme"><option value="dark" ${theme === "dark" ? "selected" : ""}>${label("Dark")}</option><option value="light" ${theme === "light" ? "selected" : ""}>${label("Light")}</option></select></label><label>${label("Language")}<select id="language"><option value="en" ${language === "en" ? "selected" : ""}>English</option><option value="tr" ${language === "tr" ? "selected" : ""}>Türkçe</option></select></label></section><section class="panel"><h2>${label("Offline assets")}</h2><p id="offline-detail">Checking local assets…</p><p id="storage-detail" class="muted"></p><div class="stack">${button("Prepare offline use", "offline", "primary")}${button("Download recognition models", "models")}${button("Request persistent storage", "persist")}${button("Clear recognition models", "clear-models", "text-button danger")}</div><div id="asset-status" role="status"></div><p class="fine">The app shell, piano samples and recognition assets can be stored offline. Other GM instruments download on first selection. Only the piano and latest selected bank are retained. Browser storage can be evicted.</p></section>${installPanel()}<section class="panel"><h2>${label("Privacy")}</h2><p>Photographs, scores, recognition and playback stay on your device. No accounts, analytics, ads or cloud uploads.</p><p>Initial model/library assets come from this host. Optional instrument downloads request a pinned FluidR3 bank from GitHub; no score data is sent.</p><h3>${label("Source & licenses")}</h3><p><a href="${assetPath("about/")}" target="_blank" rel="noopener">About modScore · Setup guide</a> · <a href="https://github.com/WeAreTheArtMakers/modScore" target="_blank" rel="noopener">GitHub</a></p><p>modScore is free software under AGPL-3.0-only, without warranty. You may modify and redistribute under the license.</p><div class="row"><a href="${assetPath("source.tar.gz")}" download>Corresponding source</a><a href="${assetPath("LICENSE")}" target="_blank" rel="noopener">AGPL-3.0</a><a href="${assetPath("THIRD_PARTY_NOTICES.md")}" target="_blank" rel="noopener">Attributions</a></div><p class="fine">Recognition: Partsong / homr-rs / homr. Model training-data provenance caveats are documented in the notices. Samples: FluidR3, Frank Wen, CC BY 3.0.</p></section></div>`;
 }
 function render() {
   revision++;
+  useMidiPitch = false;
   const rev = revision;
+  cancelPreview();
   piano?.dispose();
   piano = undefined;
   sheet.clear();
@@ -772,8 +1122,9 @@ function render() {
     )
     .join(
       "",
-    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore 0.7.0 · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : view === "audio" ? audioView() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}">${e(s)}</button>`).join("")}${project?.performance ? '<button data-export-type="6">Performance MIDI (.mid)</button>' : ""}</div><p class="fine">${project?.performance ? "Performance MIDI preserves detected timing before notation edits; MIDI above exports the current score. " : ""}Project backups preserve images and notation. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
+    )}</nav><div class="sidebar-bottom"><span class="offline-status" id="offline-status">Checking offline assets…</span>${button("Settings", "settings", `nav-item ${view === "settings" ? "selected" : ""}`, "settings")}<span class="version">modScore ${version} · Free & open source</span></div></aside><div class="shell"><header class="topbar"><span>${label(titles[view] || "Workspace")}</span><div class="topbar-right"><span class="local-badge">${icon("shield")}ON YOUR DEVICE</span>${button("Scan sheet music", "capture", "small-button", "plus")}</div></header><main class="view view-${view}">${view === "home" ? home() : view === "library" ? libraryView() : view === "scan" ? scanView() : view === "settings" ? settings() : view === "audio" ? audioView() : playerView(view === "piano")}</main></div><input id="files" type="file" accept="image/*,application/pdf,.musicxml,.xml,.mid,.midi,.json" multiple hidden><input id="camera" type="file" accept="image/*" capture="environment" hidden><dialog id="export-dialog"><form method="dialog"><button class="dialog-close icon-button" aria-label="${label("Close")}">${icon("close")}</button></form><h2>${label("Export")}</h2><div class="stack">${["Project backup (.modscore.json)", "MusicXML (.musicxml)", "MIDI (.mid)", "Audio WAV (.wav)", "Original files", "All library projects"].map((s, i) => `<button data-export-type="${i}" ${!timeline && [1, 2, 3].includes(i) ? "disabled" : ""}>${e(s)}</button>`).join("")}${project?.performance ? '<button data-export-type="6">Performance MIDI (.mid)</button>' : ""}</div><p class="fine">${project?.performance ? "Performance MIDI preserves detected timing before notation edits; MIDI above exports the current score. " : ""}Project backups preserve images, notation and edit history. MIDI and WAV reflect tempo and transpose. WAV reflects mute/solo; MIDI includes every track.</p></dialog>`;
   bind();
+  paintScoreNote();
   if (mode === "editor") void drawSourceExcerpt().catch(() => {});
   if (view === "player" || view === "piano") {
     piano = new Piano(document.querySelector("#piano")!, audio);
@@ -795,7 +1146,10 @@ function render() {
         void sheet
           .render(node, project.xml, project.title)
           .then(() => {
-            if (rev === revision) sheet.update(audio.position, false);
+            if (rev === revision) {
+              sheet.setEditing(editOnScore, selectedHead);
+              sheet.update(writtenBeat(timeline!, audio.position), false);
+            }
           })
           .catch((err) => toast(`Notation: ${err.message}`, true));
     }
@@ -829,12 +1183,20 @@ async function openProject(p: Project) {
   loopPicking = false;
   loopPickAnchor = undefined;
   project = p;
+  editOnScore = false;
+  showAlignment = false;
+  selectedHead = undefined;
   if (!p.xml) {
     pages = [...p.pages];
     originals = [...p.originals];
     scanId = p.id;
     scanName = p.title;
-    scanXml = (p as any).recognizedPages || [];
+    scanXml = [...(p.recognizedPages ?? [])];
+    pageIndex = 0;
+    status = "Review the pages, then recognize locally.";
+    timeline = undefined;
+    audio.timeline = undefined;
+    audio.loop = undefined;
     view = "scan";
     render();
     return;
@@ -844,6 +1206,7 @@ async function openProject(p: Project) {
   audio.speed = 1;
   audio.transpose = 0;
   selectedNote = 0;
+  editorMeasure = undefined;
   audio.loop = undefined;
   loopStart = 1;
   loopEnd = Math.min(4, timeline.measures.length);
@@ -852,20 +1215,54 @@ async function openProject(p: Project) {
   view = "player";
   render();
 }
-async function saveImportDraft(source = originals) {
-  if (!pages.length) return;
-  await saveScore({
+async function saveImportDraft(
+  source = originals,
+  draftPages = pages,
+  checkpoints = scanXml,
+) {
+  if (!draftPages.length) return;
+  const openDraft = project?.id === scanId && !project.xml ? project : undefined;
+  const draft: Project = {
     id: scanId,
     title: scanName || "Imported score",
     xml: "",
-    pages: [...pages],
+    pages: [...draftPages],
     originals: [...source],
-    recognizedPages: [...scanXml],
-    created: Date.now(),
+    recognizedPages: [...checkpoints],
+    created: openDraft?.created ?? Date.now(),
     updated: Date.now(),
     reviewed: false,
-  });
+  };
+  await saveScore(draft);
+  if (openDraft && project === openDraft) project = draft;
 }
+
+async function editScanPage(change: (page: Blob) => Blob | undefined | Promise<Blob>) {
+  if (busy || !pages[pageIndex]) return;
+  const index = pageIndex;
+  busy = true;
+  try {
+    const replacement = await change(pages[index]);
+    const updated = [...pages];
+    updated.splice(index, 1, ...(replacement ? [replacement] : []));
+    // Checkpoints are a sequential prefix. Keep only pages before the edit.
+    const checkpoints = scanXml.slice(0, index);
+    if (updated.length) await saveImportDraft(originals, updated, checkpoints);
+    else {
+      await deleteScore(scanId);
+      if (project?.id === scanId) project = undefined;
+      originals = [];
+    }
+    pages = updated;
+    scanXml = checkpoints;
+    pageIndex = Math.max(0, Math.min(index, updated.length - 1));
+    status = editText("Draft changes saved.", "Taslak değişiklikleri kaydedildi.");
+  } finally {
+    busy = false;
+    render();
+  }
+}
+
 async function importFiles(files: File[]) {
   if (!files.length) return;
   if (busy) throw Error("Finish or cancel the current operation first.");
@@ -984,6 +1381,7 @@ async function importFiles(files: File[]) {
   }
 }
 async function recognize() {
+  if (busy) return;
   if (!pages.length) throw Error("Import a score image first.");
   busy = true;
   cancelled = false;
@@ -1012,15 +1410,23 @@ async function recognize() {
     reviewed: false,
   };
   try {
-    await saveScore({ ...draft, recognizedPages: scanXml } as Project);
+    await saveScore({ ...draft, recognizedPages: scanXml });
     for (let i = scanXml.length; i < pages.length; i++) {
       if (cancelled) break;
       pageIndex = i;
       status = `Recognizing page ${i + 1} of ${pages.length}…`;
       render();
-      scanXml.push(await recognizer.recognize(pages[i]));
-      parseMusicXML(scanXml[i]);
-      await saveScore({ ...draft, recognizedPages: scanXml } as Project);
+      const { xml, image } = await recognizer.recognize(pages[i]);
+      if (cancelled) break;
+      if (!parseMusicXML(xml).measures.length)
+        throw Error(`No measures were recognized on page ${i + 1}. Check the image and retry.`);
+      const recognizedPages = [...scanXml, xml];
+      const preparedPages = [...draft.pages];
+      // Note locations refer to the processed page. The raw upload remains in originals.
+      preparedPages[i] = image;
+      await saveScore({ ...draft, pages: preparedPages, recognizedPages });
+      draft.pages = pages = preparedPages;
+      scanXml = recognizedPages;
     }
     if (!cancelled && scanXml.length === pages.length) {
       const xml = mergePages(scanXml, scanName);
@@ -1033,27 +1439,164 @@ async function recognize() {
         "Recognition complete. Compare the reconstructed notation with your originals.",
       );
     }
+  } catch (error) {
+    if (!cancelled) {
+      status = (error as Error).message;
+      throw error;
+    }
   } finally {
     busy = false;
     recognizer.dispose();
     if (view === "scan") render();
   }
 }
-async function persist() {
+async function persist(changes: ScoreChanges = {}) {
   if (!project) return;
-  await saveScore(project);
+  const current = project;
+  Object.assign(current, await updateScore(current, changes));
   toast(t("Saved on this device"));
 }
+const editValue = (id: string) =>
+  (document.getElementById(id) as HTMLInputElement | HTMLSelectElement).value;
+const editNumber = (id: string) => editValue(id).trim() === "" ? NaN : Number(editValue(id));
+
+function pitchChoice(id: string, keep?: ReturnType<typeof readWrittenPitch>): PitchChoice {
+  const step = editValue(id + "-step");
+  const octave = editNumber(id + "-octave");
+  const accidental = editValue(id + "-accidental");
+  if (!Number.isInteger(octave) || octave < 0 || octave > 9)
+    throw Error(editText("Choose an octave from 0 to 9.", "0 ile 9 arasında bir oktav seç."));
+  const alter = accidental === "key" ? "key" :
+    accidental === "keep" ? (keep?.step === step ? keep.alter : "key") : Number(accidental);
+  return { step, octave, alter };
+}
+
+async function commitNoteEdit(
+  xml: string, source?: number, movement?: HistoryMove,
+) {
+  if (!project || editSaving || xml === project.xml) return;
+  const current = project;
+  const updated = scoreTimeline(xml, current.title);
+  const restore = movement ? historyTarget(current.editHistory, movement) : undefined;
+  if (movement && restore?.xml !== xml) return;
+  const before: ScoreSnapshot = {
+    xml: current.xml, reviewed: current.reviewed, selected: selectedNote, head: selectedHead,
+  };
+  const match = source === undefined ? -1 : updated.notes.findIndex((n) => n.source.includes(source));
+  const next: ScoreSnapshot = restore ?? {
+    xml, reviewed: false,
+    selected: match >= 0 ? match : Math.max(0, Math.min(selectedNote, updated.notes.length - 1)),
+    head: editOnScore && match >= 0 ? source : undefined,
+  };
+  editSaving = true;
+  try {
+    const saved = await updateScore(current, {
+      xml, reviewed: next.reviewed, editHistory: advanceHistory(current.editHistory, before, movement),
+    });
+    Object.assign(current, saved);
+    if (project !== current || view !== "player") return;
+    comparison.pause();
+    audio.pause();
+    guideActive = false;
+    timeline = updated;
+    const hadLoop = !!audio.loop;
+    audio.timeline = updated;
+    applyLoop(hadLoop && !!updated.measures[loopStart - 1] && !!updated.measures[loopEnd - 1]);
+    comparison.anchor = Math.min(comparison.anchor, updated.duration);
+    selectedNote = Math.max(0, Math.min(next.selected, updated.notes.length - 1));
+    selectedHead = updated.notes[selectedNote]?.source.includes(next.head ?? -1) ? next.head : undefined;
+    editorMeasure = undefined;
+    if (audio.position > updated.duration) audio.seek(updated.duration);
+    render();
+    document.querySelector<HTMLElement>("#edit-select, #add-measure")?.focus({ preventScroll: true });
+    toast(editText("Saved on this device", "Bu cihaza kaydedildi"));
+  } finally {
+    editSaving = false;
+  }
+}
+
+async function updateAlignment(next: SourceAlignment, redraw = false) {
+  if (!project || editSaving) return;
+  const current = project;
+  editSaving = true;
+  try {
+    Object.assign(current, await updateScore(current, { sourceAlignment: next }));
+    if (redraw && project === current && view === "player") {
+      showAlignment = true;
+      render();
+    }
+  } finally {
+    editSaving = false;
+  }
+}
+
+function alignmentSettings() {
+  const offset = editNumber("source-offset");
+  const raw = editValue("source-bpm");
+  const bpm = raw ? Number(raw) : undefined;
+  if (!Number.isFinite(offset) || Math.abs(offset) > 3600 ||
+      (bpm !== undefined && (!Number.isFinite(bpm) || bpm < 20 || bpm > 300)))
+    throw Error(editText("Choose a valid source offset and recording BPM.", "Geçerli bir kayıt başlangıcı ve BPM seç."));
+  return { offset, bpm };
+}
+
 async function action(name: string) {
+  if (editSaving) return;
   switch (name) {
+    case "install-app": {
+      const prompt = installPrompt;
+      if (!prompt || installed) break;
+      installPrompt = undefined;
+      refreshInstallation();
+      if ((await prompt.prompt()).outcome === "accepted") {
+        installed = true;
+        refreshInstallation();
+      }
+      break;
+    }
     case "ab-passage":
       if(timeline){guideActive=false;comparison.pause();audio.pause();applyLoop(false);comparison.anchor=timeline.measures[12].beat;audio.seek(comparison.anchor);sheet.update(writtenBeat(timeline,comparison.anchor),true);}break;
-    case "ab-load-demo":
-      if(project?.id==="modscore-demo-basic-v4"){const current=project;const r=await fetch(assetPath("demos/basic-music-source.mp3"));if(!r.ok)throw Error("The demo recording could not be loaded. Try again when online.");const blob=await r.blob();if(project!==current)return;if(!current.originals.some(b=>b.type.startsWith("audio/")))current.originals=[...current.originals,new Blob([blob],{type:"audio/mpeg"})];current.sourceAlignment??={offset:9.525317,bpm:110};await saveScore(current);if(project===current)render();}break;
+    case "ab-load-demo": {
+      if (project?.id !== "modscore-demo-basic-v4") break;
+      const current = project;
+      const response = await fetch(assetPath("demos/basic-music-source.mp3"));
+      if (!response.ok) throw Error("The demo recording could not be loaded. Try again when online.");
+      const blob = await response.blob();
+      if (project !== current || current.originals.some((item) => item.type.startsWith("audio/"))) break;
+      Object.assign(current, await updateScore(current, {
+        originals: [...current.originals, new Blob([blob], { type: "audio/mpeg" })],
+        sourceAlignment: current.sourceAlignment ?? { offset: 9.525317, bpm: 110 },
+      }));
+      if (project === current && view === "player") render();
+      break;
+    }
+    case "mark-recording-time": {
+      const source = document.querySelector<HTMLAudioElement>("#original-audio");
+      if (!source || source.readyState < 1) throw Error(editText("Load the recording first.", "Önce kaydı yükle."));
+      document.querySelector<HTMLInputElement>("#mark-seconds")!.value = source.currentTime.toFixed(3);
+      break;
+    }
+    case "save-alignment-point": {
+      const measure = editNumber("mark-measure");
+      const seconds = editNumber("mark-seconds");
+      const source = document.querySelector<HTMLAudioElement>("#original-audio");
+      if (!project || !timeline?.measures[measure] || !Number.isFinite(seconds) || seconds < 0 ||
+          (source && Number.isFinite(source.duration) && seconds >= source.duration))
+        throw Error(editText("Choose a measure and a second within the recording.", "Ölçüyü ve kaydın içindeki saniyeyi seç."));
+      const points = (project.sourceAlignment?.points ?? []).filter((point) => point.measure !== measure);
+      points.push({ measure, seconds });
+      points.sort((a, b) => a.measure - b.measure);
+      if (!validAlignmentPoints(points))
+        throw Error(editText("Use up to 64 points in increasing recording order.", "Kayıtta ilerleyen sırayla en fazla 64 nokta ekle."));
+      comparison.pause();
+      comparison.anchor = timeline.measures[measure].beat;
+      await updateAlignment({ ...alignmentSettings(), points }, true);
+      break;
+    }
     case "ab-here": comparison.here();break;
     case "ab-source": guideActive=false;applyLoop(false);await comparison.listenSource();break;
     case "ab-piano": guideActive=false;applyLoop(false);await comparison.listenPiano();break;
-    case "ab-pause": comparison.pause();audio.pause();break;
+    case "ab-pause": comparison.pause(true);audio.pause();break;
     case "audio":
       await navigate("audio");
       break;
@@ -1241,40 +1784,24 @@ async function action(name: string) {
       }
       cancelled = true;
       recognizer.cancel();
-      busy = false;
       status = "Cancelled; pages are preserved.";
-      render();
       break;
     case "rotate":
-      if (pages[pageIndex]) {
-        pages[pageIndex] = await normalise(pages[pageIndex], 90);
-        scanXml = [];
-        render();
-      }
+      await editScanPage((page) => normalise(page, 90));
       break;
     case "remove-page":
-      pages.splice(pageIndex, 1);
-      pageIndex = Math.max(0, Math.min(pageIndex, pages.length - 1));
-      scanXml = [];
-      render();
+      await editScanPage(() => undefined);
       break;
     case "apply-page": {
-      if (!pages[pageIndex]) throw Error("Select a page first.");
-      const crop = [0, 1, 2, 3].map((i) =>
-        Number(
-          (document.querySelector(`#crop-${i}`) as HTMLInputElement).value,
-        ),
-      );
+      if (busy || !pages[pageIndex]) break;
+      const crop = [0, 1, 2, 3].map((i) => editNumber(`crop-${i}`));
       if (crop.some((n) => !Number.isFinite(n) || n < 0 || n > 100))
         throw Error("Crop percentages must be between 0 and 100.");
-      pages[pageIndex] = await normalise(
-        pages[pageIndex],
-        Number((document.querySelector("#deskew") as HTMLInputElement).value),
-        crop,
-        (document.querySelector("#enhance") as HTMLInputElement).checked,
-      );
-      scanXml = [];
-      render();
+      const deskew = editNumber("deskew");
+      if (!Number.isFinite(deskew) || Math.abs(deskew) > 15)
+        throw Error("Choose a deskew angle from −15° to 15°.");
+      const enhance = document.querySelector<HTMLInputElement>("#enhance")!.checked;
+      await editScanPage((page) => normalise(page, deskew, crop, enhance));
       break;
     }
     case "play": {
@@ -1322,69 +1849,98 @@ async function action(name: string) {
       document.querySelector<HTMLDialogElement>("#export-dialog")!.showModal();
       break;
     case "tie-next":
-    case "untie":
-      if (project && timeline) {
-        audio.stop();
-        const selected = timeline.notes[selectedNote];
-        project.xml =
-          name === "tie-next"
-            ? tieNext(project.xml, selected)
-            : untie(project.xml, selected);
-        timeline = scoreTimeline(project.xml, project.title);
-        audio.timeline = timeline;
-        selectedNote = Math.min(selectedNote, timeline.notes.length - 1);
-        project.reviewed = false;
-        await persist();
-        render();
-      }
+    case "untie": {
+      const note = selectedScoreNote();
+      if (!project || !note) break;
+      await commitNoteEdit(name === "tie-next" ? tieNext(project.xml, note) : untie(project.xml, note),
+        note.source[0]);
       break;
+    }
     case "save-tempo":
       if (project) {
-        audio.stop();
-        project.xml = setScoreTempo(
-          project.xml,
-          Number(
-            (document.querySelector("#score-tempo") as HTMLInputElement).value,
-          ),
-          (document.querySelector("#tempo-words") as HTMLInputElement).value,
-        );
-        timeline = scoreTimeline(project.xml, project.title);
-        audio.timeline = timeline;
-        audio.speed = 1;
-        await persist();
-        render();
+        const xml = setScoreTempo(project.xml, editNumber("score-tempo"), editValue("tempo-words"));
+        await commitNoteEdit(xml, selectedScoreNote()?.source[0]);
       }
       break;
-    case "correct":
-      if (project && timeline) {
-        const note = timeline.notes[selectedNote],
-          pitch = Number(
-            (document.querySelector("#edit-pitch") as HTMLSelectElement).value,
-          ),
-          duration = Number(
-            (document.querySelector("#edit-duration") as HTMLInputElement)
-              .value,
-          );
-        audio.stop();
-        let corrected = amendOnset(
-          project.xml,
-          note,
-          Number(
-            (document.querySelector("#edit-onset") as HTMLInputElement).value,
-          ),
-        );
-        project.xml = amendNote(corrected, note, pitch, duration);
-        timeline = scoreTimeline(project.xml, project.title);
-        audio.timeline = timeline;
-        project.reviewed = false;
-        await persist();
-        render();
+    case "toggle-score-edit": {
+      editOnScore = !editOnScore;
+      selectedHead = undefined;
+      cancelPreview();
+      sheet.setEditing(editOnScore);
+      document.querySelector('[data-action="toggle-score-edit"]')?.setAttribute("aria-pressed", String(editOnScore));
+      const inspector = document.getElementById("score-note-inspector")!;
+      if (editOnScore) paintScoreNote();
+      else inspector.replaceChildren();
+      break;
+    }
+    case "hear-note":
+    case "save-inline-note":
+    case "delete-inline-note": {
+      const note = selectedScoreNote();
+      if (!project || !note || selectedHead === undefined) break;
+      if (name === "hear-note") await auditionNote(note);
+      if (name === "delete-inline-note") await commitNoteEdit(removeWrittenNote(project.xml, note));
+      if (name === "save-inline-note") {
+        const pitch = readWrittenPitch(xmlDocument(project.xml)
+          .querySelectorAll("part > measure > note")[note.source[0]]);
+        const choice = pitchChoice("inline", pitch);
+        if (editValue("inline-accidental") === "keep" && choice.step === pitch.step && choice.octave === pitch.octave) break;
+        await commitNoteEdit(replaceWrittenPitch(project.xml, note, choice), selectedHead);
       }
       break;
+    }
+    case "correct": {
+      const note = selectedScoreNote();
+      if (!project || !note) break;
+      const duration = editNumber("edit-duration");
+      const onset = editNumber("edit-onset");
+      const original = readWrittenPitch(xmlDocument(project.xml)
+        .querySelectorAll("part > measure > note")[note.source[0]]);
+      const accidental = editValue("edit-accidental");
+      const samePitch = !useMidiPitch && editValue("edit-step") === original.step &&
+        editNumber("edit-octave") === original.octave &&
+        (accidental === "keep" ||
+          (accidental === String(original.alter) && original.accidental === accidentalNames[original.alter]));
+      let corrected = amendOnset(project.xml, note, onset);
+      if (Math.abs(duration - note.duration) > 0.000001 || !Number.isFinite(duration))
+        corrected = amendNote(corrected, note, null, duration);
+      if (!samePitch) {
+        const choice = useMidiPitch
+          ? pitchChoiceForMidi(project.xml, note, editNumber("edit-pitch"))
+          : pitchChoice("edit", original);
+        corrected = replaceWrittenPitch(corrected, note, choice);
+      }
+      await commitNoteEdit(corrected, note.source[0]);
+      break;
+    }
+    case "delete-note": {
+      const note = selectedScoreNote();
+      if (project && note) await commitNoteEdit(removeWrittenNote(project.xml, note));
+      break;
+    }
+    case "add-note": {
+      if (!project) break;
+      const index = editNumber("add-measure");
+      const measure = writtenMeasures().find((m) => (m.sourceMeasure ?? m.index) === index);
+      const target = editValue("add-target");
+      if (!measure || !target)
+        throw Error(editText("Choose a measure and voice.", "Ölçü ve ses seç."));
+      const inserted = insertWrittenNote(project.xml, index, JSON.parse(target) as InsertionTarget,
+        (editNumber("add-beat") - 1) * quarterBeatsPerPulse(measure),
+        editNumber("add-duration"), measure.duration, pitchChoice("add"));
+      await commitNoteEdit(inserted.xml, inserted.source);
+      break;
+    }
+    case "undo-note":
+    case "redo-note": {
+      const move = name === "undo-note" ? "undo" : "redo";
+      const target = historyTarget(project?.editHistory, move);
+      if (target) await commitNoteEdit(target.xml, undefined, move);
+      break;
+    }
     case "reviewed":
       if (project) {
-        project.reviewed = true;
-        await persist();
+        await persist({ reviewed: true });
         render();
       }
       break;
@@ -1488,6 +2044,10 @@ function bind() {
     document
       .getElementById(id)
       ?.addEventListener(event, (ev) => safe(() => fn(ev))());
+  on("score-note-inspector", "click", (ev) => {
+    const btn = (ev.target as Element).closest<HTMLButtonElement>("button[data-action]");
+    if (btn) return action(btn.dataset.action!);
+  });
   on("files", "change", async (ev) => {
     const input = ev.target as HTMLInputElement;
     try {
@@ -1552,6 +2112,10 @@ function bind() {
     (n) =>
       (n.onclick = () => {
         mode = n.dataset.mode!;
+        if (mode === "editor" && timeline) {
+          const current = [...timeline.measures].reverse().find((m) => m.beat <= audio.now());
+          if (current && current.index > 0) selectEditorMeasure(current.index);
+        }
         render();
       }),
   );
@@ -1583,7 +2147,15 @@ function bind() {
             loopPickAnchor = undefined;
             applyLoop(true);
           }
-        } else {comparison.pause();comparison.anchor=timeline!.measures[index].beat;audio.seek(comparison.anchor);}
+        } else {
+          comparison.pause();
+          comparison.anchor = timeline!.measures[index].beat;
+          audio.seek(comparison.anchor);
+          if (mode === "editor") {
+            selectEditorMeasure(index);
+            render();
+          }
+        }
       }),
   );
   on("instrument", "change", async (ev) => {
@@ -1664,9 +2236,45 @@ function bind() {
   };
   for (const id of ["loop-on", "loop-start", "loop-end"])
     on(id, "change", setLoop);
-  on("comparison-file","change",async ev=>{const file=(ev.target as HTMLInputElement).files?.[0];if(!file||!project)return;if(file.size>40*1024*1024)throw Error("Recording must be under 40 MB.");if(!file.type.startsWith("audio/")&&!/\.(wav|mp3|m4a|ogg|flac)$/i.test(file.name))throw Error("Choose an audio recording.");comparison.pause();audio.pause();project.originals=[...project.originals.filter(b=>!b.type.startsWith("audio/")),file.type.startsWith("audio/")?file:new Blob([file],{type:file.name.toLowerCase().endsWith(".wav")?"audio/wav":"audio/mpeg"})];project.sourceAlignment={offset:0,bpm:timeline?.tempos.length===1?timeline.tempos[0].bpm:undefined};await saveScore(project);render();});
-  const alignSource=async()=>{if(!project)return;const offset=Number((document.querySelector("#source-offset") as HTMLInputElement).value),raw=(document.querySelector("#source-bpm") as HTMLInputElement).value,bpm=raw?Number(raw):undefined;if(!Number.isFinite(offset)||Math.abs(offset)>3600||(bpm!==undefined&&(!Number.isFinite(bpm)||bpm<20||bpm>300)))throw Error("Choose a valid source offset and recording BPM.");comparison.pause();project.sourceAlignment={offset,bpm};await saveScore(project);};
-  on("source-offset","change",alignSource);on("source-bpm","change",alignSource);
+  on("comparison-file", "change", async (ev) => {
+    const file = (ev.target as HTMLInputElement).files?.[0];
+    if (!file || !project || editSaving) return;
+    if (file.size > 40 * 1024 * 1024) throw Error("Recording must be under 40 MB.");
+    if (!file.type.startsWith("audio/") && !/\.(wav|mp3|m4a|ogg|flac)$/i.test(file.name))
+      throw Error("Choose an audio recording.");
+    const current = project;
+    comparison.pause();
+    audio.pause();
+    Object.assign(current, await updateScore(current, {
+      originals: [
+        ...current.originals.filter((item) => !item.type.startsWith("audio/")),
+        file.type.startsWith("audio/") ? file : new Blob([file], {
+          type: file.name.toLowerCase().endsWith(".wav") ? "audio/wav" : "audio/mpeg",
+        }),
+      ],
+      sourceAlignment: { offset: 0, bpm: timeline?.tempos.length === 1 ? timeline.tempos[0].bpm : undefined },
+    }));
+    if (project === current && view === "player") render();
+  });
+  const alignSource = async () => {
+    if (!project) return;
+    comparison.pause();
+    const points = project.sourceAlignment?.points;
+    await updateAlignment({ ...alignmentSettings(), ...(points ? {points} : {}) });
+  };
+  on("source-offset", "change", alignSource);
+  on("source-bpm", "change", alignSource);
+  on("alignment-details", "toggle", (ev) => {
+    showAlignment = (ev.target as HTMLDetailsElement).open;
+  });
+  app.querySelectorAll<HTMLButtonElement>("[data-remove-mark]").forEach((btn) => {
+    btn.onclick = safe(async () => {
+      if (!project?.sourceAlignment) return;
+      const points = project.sourceAlignment.points?.filter((point) => point.measure !== Number(btn.dataset.removeMark));
+      comparison.pause();
+      await updateAlignment({ ...project.sourceAlignment, points }, true);
+    });
+  });
   const expression=async()=>{const style=(document.querySelector("#expression-style") as HTMLSelectElement).value as ExpressionOptions["style"],fermata=Number((document.querySelector("#fermata-stretch") as HTMLInputElement).value);if(!["auto","baroque","classical","literal"].includes(style)||!Number.isFinite(fermata)||fermata<1||fermata>2.5)throw Error("Choose a valid expression style and fermata stretch.");const was=audio.playing;comparison.pause();audio.pause();Object.assign(expressionSettings,{style,fermata});localStorage.setItem("modscore-expression",style);localStorage.setItem("modscore-fermata",String(fermata));if(timeline)timeline.expression={...expressionSettings};if(was)await audio.play();};
   on("expression-style","change",expression);on("fermata-stretch","change",expression);
   on("audio-auto-tempo", "change", (ev) => {
@@ -1743,17 +2351,23 @@ function bind() {
         colors[keys.indexOf(n.dataset.color!) % colors.length] = n.value;
       }),
   );
-  app.querySelectorAll<HTMLElement>("[data-review-note]").forEach(
-    (node) =>
-      (node.onclick = () => {
-        const index = Number(node.dataset.reviewNote);
-        if (index >= 0) {
-          selectedNote = index;
-          mode = "editor";
-          render();
-        }
-      }),
-  );
+  app.querySelectorAll<HTMLElement>("[data-review-measure]").forEach((node) => {
+    node.onclick = () => {
+      selectEditorMeasure(Number(node.dataset.reviewMeasure));
+      selectedHead = undefined;
+      mode = "editor";
+      render();
+    };
+  });
+  on("add-measure", "change", () => {
+    if (!project) return;
+    document.querySelector<HTMLSelectElement>("#add-target")!.innerHTML =
+      addNoteFields(xmlDocument(project.xml), editNumber("add-measure"), selectedScoreNote());
+    document.querySelector<HTMLInputElement>("#add-beat")!.value = "1";
+  });
+  on("edit-pitch", "change", () => { useMidiPitch = true; });
+  for (const id of ["edit-step", "edit-octave", "edit-accidental"])
+    on(id, "change", () => { useMidiPitch = false; });
   on("edit-rhythm", "change", (ev) => {
     const value = (ev.target as HTMLSelectElement).value;
     if (value)
@@ -1762,6 +2376,7 @@ function bind() {
   });
   on("edit-select", "change", (ev) => {
     selectedNote = Number((ev.target as HTMLSelectElement).value);
+    editorMeasure = undefined;
     render();
   });
   on("theme", "change", (ev) => {
@@ -1771,6 +2386,7 @@ function bind() {
   });
   on("language", "change", (ev) => {
     setLanguage((ev.target as HTMLSelectElement).value);
+    reviewCache = undefined;
     render();
   });
   app
@@ -1814,14 +2430,13 @@ function bind() {
           menu.querySelector("#rename-title") as HTMLInputElement
         ).value.trim();
         if (!title) throw Error("Enter a title");
-        project!.title = title;
-        await persist();
+        await persist({ title });
         render();
       }),
     );
     menu
       .querySelector('[data-action="save"]')!
-      .addEventListener("click", safe(persist));
+      .addEventListener("click", safe(() => persist()));
     menu.querySelector('[data-action="delete"]')!.addEventListener(
       "click",
       safe(async () => {
@@ -1862,10 +2477,12 @@ async function doExport(type: number) {
     );
     return;
   }
-  if (!project || !timeline) throw Error("Open a score first.");
+  if (!project) throw Error("Open a score first.");
   const name = project.title.replace(/[\\/:*?"<>|]/g, "-");
   if (type === 0)
     download(await exportProject(project), name + ".modscore.json");
+  if ([1, 2, 3, 6].includes(type) && !timeline)
+    throw Error("Recognize or import a playable score before exporting notation or audio.");
   if (type === 1)
     download(
       new Blob([project.xml], {
@@ -1873,16 +2490,15 @@ async function doExport(type: number) {
       }),
       name + ".musicxml",
     );
-  if (type === 2)
+  if (type === 2 && timeline)
     download(exportMidi(timeline, audio.transpose, audio.speed), name + ".mid");
   if (type === 3) {
+    comparison.pause();
     audio.pause();
-    await audio.activate();
-    await audio.prepare();
     toast("Rendering WAV locally…");
     download(await audio.wav(), name + ".wav");
   }
-  if (type === 6 && project.performance) {
+  if (type === 6 && project.performance && timeline) {
     const perf = project.performance;
     const t: Timeline = {
       ...timeline,
@@ -1960,7 +2576,7 @@ async function updateReadiness() {
         }
       } catch {}
     }
-    const ready = sw && models && shellReady;
+    const ready = sw && shellReady;
     document
       .querySelector("#offline-status")
       ?.replaceChildren(
@@ -1992,7 +2608,22 @@ async function prepareOffline() {
   };
   if (!("serviceWorker" in navigator))
     throw Error("A secure HTTPS origin is required for offline installation.");
-  await navigator.serviceWorker.ready;
+  if (!import.meta.env.PROD)
+    throw Error("Use the production build to prepare offline use.");
+  let timeout = 0;
+  try {
+    await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<never>((_, reject) => {
+        timeout = window.setTimeout(() => reject(Error(editText(
+          "The offline worker is taking longer than expected. Stay online and try again.",
+          "Çevrimdışı hazırlık beklenenden uzun sürdü. İnternet açıkken tekrar dene.",
+        ))), 60_000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
   const r = await fetch(assetPath("offline-assets.json"));
   if (!r.ok) throw Error("Build the production app to prepare offline assets.");
   const paths: string[] = await r.json();
@@ -2001,7 +2632,7 @@ async function prepareOffline() {
   );
   for (let i = 0; i < paths.length; i++) {
     const path = assetPath(paths[i]);
-    if (!(await cache.match(path))) {
+    if (!(await caches.match(new URL(path, location.origin).href))) {
       const res = await fetch(path);
       if (!res.ok) throw Error(`Could not store ${path}`);
       await cache.put(path, res);
@@ -2010,12 +2641,11 @@ async function prepareOffline() {
     if (node)
       node.textContent = `Stored ${i + 1} / ${paths.length} application assets`;
   }
-  await recognizer.init();
-  recognizer.dispose();
   await updateReadiness();
-  toast(
-    "Offline assets downloaded. Close and reopen the app once, then verify in airplane mode.",
-  );
+  toast(editText(
+    "The app and piano are ready to use offline. Download the recognition models separately if needed.",
+    "Uygulama ve piyano çevrimdışı kullanıma hazır. Nota tanıma gerekiyorsa modelleri ayrıca indir.",
+  ));
 }
 let pulseTimeline: Timeline | undefined,
   pulseCache: ReturnType<typeof metronomePulses> = [];
@@ -2188,6 +2818,7 @@ function updatePlay() {
 }
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
+    comparison.pause();
     audio.pause();
     updatePlay();
   }
@@ -2201,14 +2832,12 @@ if (import.meta.env.PROD && "serviceWorker" in navigator)
     .then((reg) => {
       updateCleanup?.();
       updateCleanup = watchUpdates(reg, navigator.serviceWorker, async () => {
-        if (busy)
-          throw Error(
-            language === "tr"
-              ? "Önce taramayı bitirin veya iptal edin."
-              : "Finish or cancel recognition before updating.",
-          );
+        if (busy || editSaving)
+          throw Error(editText("Finish the current operation before updating.",
+            "Güncellemeden önce mevcut işlemi bitir."));
+        comparison.pause();
         audio.pause();
-        if (project) await saveScore(project);
+        if (view === "scan") await saveImportDraft();
       });
     })
     .catch((err) => console.warn("Offline install:", err));

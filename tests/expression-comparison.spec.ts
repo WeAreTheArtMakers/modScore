@@ -142,12 +142,8 @@ test("A/B uses the same chosen beat, stops the other player, supports seeking th
   expect(
     await source.evaluate((e) => (e as HTMLAudioElement).currentTime),
   ).toBeLessThan(36.3);
-  await source.evaluate((e) => {
-    const a = e as HTMLAudioElement;
-    a.pause();
-    a.currentTime = 40;
-  });
-  await page.waitForTimeout(100);
+  await source.evaluate((e) => { (e as HTMLAudioElement).currentTime = 40; });
+  await page.getByRole("button", { name: "Pause comparison", exact: true }).click();
   await page
     .getByRole("button", { name: "Compare from here", exact: true })
     .click();
@@ -232,10 +228,6 @@ test("WAV rendering uses the same expressive clock and sampled ornament notes as
 }) => {
   test.skip(isMobile, "The offline sampled render is covered once on desktop.");
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Virtual piano", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Enable audio", exact: true }).click();
   const r = await page.evaluate(async () => {
     const { AudioEngine } = await import("/src/audio.ts");
     const { parseMusicXML } = await import("/src/music.ts");
@@ -245,15 +237,17 @@ test("WAV rendering uses the same expressive clock and sampled ornament notes as
     );
     const a = new AudioEngine();
     a.timeline = t;
-    await a.activate();
-    await a.prepare();
-    const data = await (await a.wav()).arrayBuffer(),
-      v = new DataView(data);
+    const exporting = a.wav();
+    // Changing projects or controls must not affect an in-flight export.
+    a.timeline = undefined;
+    a.speed = 2;
+    a.transpose = 12;
+    a.volume = 0;
+    const data = await (await exporting).arrayBuffer(), v = new DataView(data);
     let energy = 0;
     for (let i = 44; i < data.byteLength; i += 2)
       energy += v.getInt16(i, true) ** 2;
     const bytes = Array.from(new Uint8Array(await exportMidi(t).arrayBuffer()));
-    await a.context!.close();
     return {
       rate: v.getUint32(24, true),
       seconds: (data.byteLength - 44) / 2 / v.getUint32(24, true),

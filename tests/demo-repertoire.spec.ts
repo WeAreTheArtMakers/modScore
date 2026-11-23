@@ -116,10 +116,13 @@ for (const [key, file, source, bars, notes, beats] of [
           beats: t.duration,
           notes: t.notes.map((n) => [n.pitch, n.beat, n.duration]),
           warnings: t.warnings,
+          lastMeasure: t.notes.filter((n) => n.measure === t.measures.length - 1)
+            .map((n) => [n.pitch, n.staff]),
         };
       },
       { key, file },
     );
+    if (key === "bach-invention") expect(r.lastMeasure).toContainEqual([36, 2]);
     expect(r.bars).toBe(bars);
     expect(r.beats).toBe(beats);
     expect(r.notes).toHaveLength(notes);

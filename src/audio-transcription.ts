@@ -20,28 +20,28 @@ export async function transcribeAudio(
       throw new DOMException("Transcription cancelled", "AbortError");
   };
   check();
-  // Decode locally, then retain only the bounded excerpt for the worker.
-  const context = new AudioContext();
+  // Decode directly at the model rate. Routing through the output device's
+  // sample rate and back alters onset features and can drop quiet attacks.
+  const rate = 22050;
+  const decoder = new OfflineAudioContext(1, 1, rate);
+  const buffer = await decoder.decodeAudioData(await file.arrayBuffer());
+  check();
+  const start = options.start ?? 0;
+  if (!Number.isFinite(start) || start < 0 || start >= buffer.duration)
+    throw Error("Choose a start time within the recording.");
+  const seconds = Math.min(options.seconds, buffer.duration - start);
+  const frames = Math.max(1, Math.ceil(seconds * rate));
+  const startFrame = start * rate;
   let samples: Float32Array;
-  try {
-    const buffer = await context.decodeAudioData(await file.arrayBuffer());
-    check();
-    const start = options.start ?? 0;
-    if (!Number.isFinite(start) || start < 0 || start >= buffer.duration)
-      throw Error("Choose a start time within the recording.");
-    const seconds = Math.min(options.seconds, buffer.duration - start);
-    const offline = new OfflineAudioContext(
-      1,
-      Math.max(1, Math.ceil(seconds * 22050)),
-      22050,
-    );
+  if (buffer.numberOfChannels === 1 && Number.isInteger(startFrame)) {
+    samples = buffer.getChannelData(0).slice(startFrame, startFrame + frames);
+  } else {
+    const offline = new OfflineAudioContext(1, frames, rate);
     const source = offline.createBufferSource();
     source.buffer = buffer;
     source.connect(offline.destination);
     source.start(0, start);
     samples = (await offline.startRendering()).getChannelData(0).slice();
-  } finally {
-    await context.close();
   }
   check();
   options.onTempo?.(estimateAudioTempo(samples));

@@ -37,6 +37,7 @@ test("note correction, saved library search, rename and reload", async ({
 }) => {
   await importXml(page);
   await page.getByRole("tab", { name: "Review notes", exact: true }).click();
+  await page.getByText("MIDI pitch and timing", { exact: true }).click();
   await page.locator("#edit-pitch").selectOption("61");
   await page
     .getByRole("button", { name: "Apply correction", exact: true })
@@ -138,4 +139,22 @@ test('two real images recognize sequentially and combine into one score', async 
  await page.getByRole('button',{name:'Recognize locally',exact:true}).click();
  await expect(page.locator('.score-meta')).toContainText('8 measures · 38 notes',{timeout:150000});
  await expect(page.locator('#notation svg')).toBeVisible();
+});
+
+test("settings exposes mobile installation and handles the native prompt", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const install = page.locator("#installation");
+  await expect(install.getByText("iPhone · Safari")).toBeVisible();
+  await expect(install.getByText("Android · Chrome")).toBeVisible();
+  const button = install.getByRole("button", { name: "Install app" });
+  await expect(button).toBeHidden();
+  await page.evaluate(() => {
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.assign(event, { prompt: async () => ({ outcome: "accepted" }) });
+    window.dispatchEvent(event);
+  });
+  await button.click();
+  await expect(install.getByRole("status")).toHaveText("modScore is open as an installed app.");
+  await expect(button).toBeHidden();
 });

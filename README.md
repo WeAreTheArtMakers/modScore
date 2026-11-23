@@ -11,13 +11,13 @@
 </p>
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-b6ef72?style=flat-square"></a>
-  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-80cae9?style=flat-square">
+  <img alt="Version 0.8.0" src="https://img.shields.io/badge/version-0.8.0-80cae9?style=flat-square">
   <img alt="Local processing" src="https://img.shields.io/badge/processing-on_device-b6ef72?style=flat-square">
 </p>
 
 modScore turns printed sheet music into notation you can hear, see and practice. Import a photo or PDF, recognize the music locally, review the result and play it with a synchronized score and 88-key piano. No accounts, subscriptions, ads, analytics or score uploads.
 
-**Working development release.** Recognition is experimental. Review pitches, rhythm, ties and parts against the original. Desktop Chrome has been tested; physical iPhone XS / iOS 18, Android, Windows, MIDI keyboards and audio interfaces still need device testing. See [limitations](docs/LIMITATIONS.md) and [recognition evidence](docs/RECOGNITION_REPORT.md).
+**Working development release.** Recognition is experimental. Review pitches, rhythm, ties and parts against the original. Desktop Chrome and a mobile Chrome viewport have been tested. The current release still needs validation on physical iPhone and Android devices, Windows and physical MIDI/audio hardware. See [limitations](docs/LIMITATIONS.md) and [recognition evidence](docs/RECOGNITION_REPORT.md).
 
 ![modScore playing the included original CC0 study](docs/preview.png)
 
@@ -42,7 +42,7 @@ The demo chooser also offers **Bach BWV 772** (complete, 22 measures), **Bach BW
 1. Choose **Import score** for images, PDF, MusicXML or MIDI, or **Scan sheet music** for the camera.
 2. For a PDF, select the pages you need. Encrypted files open with a local password prompt. Adjust image rotation, crop or contrast when necessary.
 3. Choose **Recognize locally** for scanned pages. First use downloads about **158 MB of models**. Completed-page progress is saved in this browser.
-4. Compare the score with **Original / Compare**, then use **Review notes** for pitch, timing, ties and tempo corrections.
+4. Compare the score with **Original / Compare**, then use **Review notes** to correct or delete a selected note. **Add a note** opens the pitch and rhythm palette. Choose the measure, staff, beat and duration, then follow the key signature or select an explicit accidental. In the Score tab, **Edit on score** lets you audition, change or delete an individual notehead. Undo and redo are saved per score on this device and included in modScore backups. Up to 24 recent revisions are kept, with a storage limit for large scores.
 5. Enable audio and play. Slow down, transpose, seek, loop measures, use the metronome or mute/solo voices.
 6. Export a project backup, MusicXML, MIDI, WAV or original files. Export backups regularly; browser storage can be cleared or evicted.
 
@@ -97,14 +97,14 @@ In **Settings → Connect MIDI**, grant permission and select an input. Incoming
 
 Use **Audio outputs** to choose an output when your browser supports it. Otherwise choose the sound card/audio interface in your operating system’s sound settings. MIDI input and audio output are separate connections. Physical MIDI and audio hardware have not been tested here.
 
-## Offline and iPhone installation
+## Install on iPhone or Android and use offline
 
-1. Open the HTTPS app online. On iPhone, use Safari → **Share → Add to Home Screen** and open that icon.
-2. Choose **Settings → Prepare offline use** and keep the app open until downloads finish.
+1. Open the HTTPS app online. In iPhone Safari, use **Share → Add to Home Screen** and enable **Open as Web App** if shown. In Android Chrome, use **Settings → Install app** inside modScore when available, or Chrome’s **⋮ → Add to home screen → Install**. Reopen modScore from its icon.
+2. Choose **Settings → Prepare offline use** and keep the app open until the app and piano are ready. Download recognition models separately if you want to scan offline.
 3. Select any extra instrument you need before disconnecting. Only piano and the last selected bank are retained.
 4. Disconnect the network and verify reopening, recognition and playback on your device.
 
-Safari and the installed Home Screen app may have separate storage. Prepare offline use in the environment you will use. Storage persistence is a browser request, not a guarantee; keep backups outside the browser. PWA installation does not require Xcode or an Apple developer account. Physical iPhone memory/performance remains unverified.
+Safari and the installed Home Screen app may have separate storage. Prepare offline use in the environment you will use. Storage persistence is a browser request, not a guarantee; keep backups outside the browser. PWA installation does not require Xcode or an Apple developer account. See [device verification and PDF benchmarks](docs/DEVICE_TESTING.md).
 
 ## Run on your computer
 
@@ -174,6 +174,7 @@ npm run dev
 # Terminal 2 (tests use installed Google Chrome)
 npm test
 npm run test:recognition
+npm run test:recognition:fixtures
 
 # Verify the production GitHub Pages subpath, no isolation headers required
 npm run build:pages

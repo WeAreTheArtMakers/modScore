@@ -1,5 +1,5 @@
 import { sourceLocation } from "./recognition-review";
-import { xmlDocument, parseMusicXML } from "./music";
+import { xmlDocument, parseMusicXML, noteStaff } from "./music";
 /** Structural checks describe encoded music; they never claim image recognition confidence. */
 export function reviewEncoding(xml: string) {
   const doc = xmlDocument(xml);
@@ -16,6 +16,7 @@ export function reviewEncoding(xml: string) {
     ties: number;
     shortNotes: number;
     beams: number;
+    cluster: number;
     issues: string[];
   }[] = [];
   for (const part of Array.from(
@@ -31,6 +32,8 @@ export function reviewEncoding(xml: string) {
       let at = 0,
         end = 0,
         previous = 0;
+      let chordSize = 0;
+      let cluster = 0;
       const intervals = new Map<string, [number, number][]>();
       const issues: string[] = [];
       for (const node of Array.from(measure.children)) {
@@ -55,12 +58,16 @@ export function reviewEncoding(xml: string) {
         if (node.tagName === "note" && !node.querySelector("grace")) {
           const chord = !!node.querySelector("chord"),
             start = chord ? previous : at;
+          if (node.querySelector("pitch")) {
+            chordSize = chord ? chordSize + 1 : 1;
+            cluster = Math.max(cluster, chordSize);
+          } else if (!chord) chordSize = 0;
           if (!chord) {
             previous = at;
             at += duration;
           }
           end = Math.max(end, start + duration);
-          const staff = node.querySelector("staff")?.textContent || "1";
+          const staff = String(noteStaff(node));
           const spans = intervals.get(staff) || [];
           spans.push([start, start + duration]);
           intervals.set(staff, spans);
@@ -117,12 +124,13 @@ export function reviewEncoding(xml: string) {
         ties: measure.querySelectorAll('tie[type="start"]').length,
         shortNotes: measure.querySelectorAll("note > type").length
           ? Array.from(measure.querySelectorAll("note")).filter((n) =>
-              ["eighth", "16th", "32nd", "64th", "128th", "256th", "512th", "1024th"].includes(
+              ["16th", "32nd", "64th", "128th", "256th", "512th", "1024th"].includes(
                 n.querySelector("type")?.textContent || "",
               ),
             ).length
           : 0,
         beams: measure.querySelectorAll("beam").length,
+        cluster,
         issues,
       });
     }

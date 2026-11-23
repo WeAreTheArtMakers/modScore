@@ -21,6 +21,8 @@ const mime = {
   ".mp3": "audio/mpeg",
 };
 const root = resolve("dist");
+const simulateMissingOptional = process.env.MODSCORE_VERIFY_OPTIONAL_MISS === "1";
+let missedOptional = false;
 const server = createServer(async (req, res) => {
   try {
     const pathname = decodeURIComponent(
@@ -28,6 +30,11 @@ const server = createServer(async (req, res) => {
     );
     if (!pathname.startsWith(base)) {
       res.writeHead(404).end();
+      return;
+    }
+    if (simulateMissingOptional && !missedOptional && pathname === base + "_headers") {
+      missedOptional = true;
+      res.writeHead(503).end("Simulated interruption of an optional asset");
       return;
     }
     let file = resolve(root, pathname.slice(base.length) || "index.html");
@@ -59,7 +66,8 @@ const errors = [],
   failures = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("response", (r) => {
-  if (r.url().startsWith(origin) && r.status() >= 400)
+  if (r.url().startsWith(origin) && !r.url().endsWith("/intentional-offline-miss") &&
+      !(simulateMissingOptional && r.url().endsWith("/_headers") && r.status() === 503) && r.status() >= 400)
     failures.push(r.status() + " " + r.url());
 });
 const { expect } = await import("@playwright/test");
@@ -78,12 +86,42 @@ try {
     async () => (await navigator.serviceWorker.ready).scope,
   );
   expect(scope).toBe(origin + base);
+  const cdp = await context.newCDPSession(page);
+  const manifest = await cdp.send("Page.getAppManifest");
+  expect(manifest.errors.filter((error) => error.critical)).toEqual([]);
+  const installedApp = JSON.parse(manifest.data);
+  expect(installedApp).toMatchObject({ id: "./", start_url: "./", scope: "./", display: "standalone" });
+  expect(installedApp.icons).toEqual(expect.arrayContaining([
+    expect.objectContaining({ sizes: "192x192", purpose: "any" }),
+    expect.objectContaining({ sizes: "512x512", purpose: "any" }),
+    expect.objectContaining({ sizes: "512x512", purpose: "maskable" }),
+  ]));
+  const icons = await page.evaluate(async (icons) => Promise.all(icons.map(async ({ src }) => {
+    const image = new Image();
+    image.src = src;
+    await image.decode();
+    return [image.naturalWidth, image.naturalHeight];
+  })), [...installedApp.icons, { src: await page.locator('link[rel="apple-touch-icon"]').getAttribute("href") }]);
+  expect(icons).toEqual([[192, 192], [512, 512], [512, 512], [180, 180]]);
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(false);
   await expect(page.locator("h1")).toHaveText("Basic Music");
   await expect(page.locator("#notation svg").first()).toBeVisible();
   await expect(page.locator("[data-measure]")).toHaveCount(70);
   await expect(page.locator("#demo-banner")).toContainText("three flats");
   await expect(page.locator("#follow")).not.toBeChecked();
+  if (simulateMissingOptional) {
+    expect(missedOptional).toBe(true);
+    expect(await page.evaluate(async () => ({
+      optional: !!await caches.match(new URL("./_headers", location.href).href),
+      piano: !!await caches.match(new URL("./instruments/acoustic_grand_piano.json", location.href).href),
+      lastWorker: !!await caches.match(new URL("./recognition/omr-worker.js", location.href).href),
+    }))).toEqual({ optional: false, piano: true, lastWorker: true });
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("button", { name: "Prepare offline use", exact: true }).click();
+    await expect(page.getByRole("status").filter({hasText: "The app and piano are ready to use offline"})).toBeVisible({timeout: 45000});
+    await page.getByRole("button", { name: "My scores", exact: true }).first().click();
+    await page.locator(".score-open").filter({hasText:"Basic Music"}).first().click();
+  }
   const response = await fetch(origin + base + "demos/basic-music.mid");
   const midi = parseMidi(new Uint8Array(await response.arrayBuffer()));
   expect(midi.tracks.flat().filter((e) => e.type === "noteOn")).toHaveLength(
@@ -100,6 +138,7 @@ try {
   await expect(page.locator(".key.active").first()).toBeVisible();
   expect(await page.locator("#original-audio").evaluate(e=>e.paused)).toBe(true);
   await page.getByRole("button", {name:"Pause comparison",exact:true}).click();
+  await expect(page.locator(".toast")).toHaveCount(0, { timeout: 10000 });
   await page.screenshot({
     path: "docs/validation/demo-desktop.png",
     fullPage: false,
@@ -158,13 +197,14 @@ try {
   await expect(page.locator(".score-open")).toHaveCount(4);
   if (process.env.MODSCORE_VERIFY_OMR === "1") {
     await page.goto(origin + base);
-    await page.locator("#files").setInputFiles("docs/validation/input.png");
+    await page.locator("#files").setInputFiles("tests/fixtures/recognition-study-skewed.jpg");
     await page
       .getByRole("button", { name: "Recognize locally", exact: true })
       .click();
-    await expect(page.locator("#notation svg").first()).toBeVisible({
+    await expect(page.locator(".score-meta")).toContainText("3 measures · 56 notes", {
       timeout: 240000,
     });
+    await expect(page.locator("#notation svg").first()).toBeVisible();
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect(page.locator(".key.active").first()).toBeVisible();
     await page.getByRole("button", { name: "Pause", exact: true }).click();
@@ -215,6 +255,14 @@ try {
   );
   await context.setOffline(true);
   await page.goto(origin + base);
+  const offlineRequests = await page.evaluate(async () => {
+    const range = await fetch("./demos/basic-music-source.mp3", { headers: { Range: "bytes=0-1" } });
+    const absent = await fetch("./intentional-offline-miss");
+    return { range: range.status, rangeLength: (await range.arrayBuffer()).byteLength,
+      contentRange: range.headers.get("Content-Range"), absent: absent.status };
+  });
+  expect(offlineRequests).toMatchObject({ range: 206, rangeLength: 2, absent: 503 });
+  expect(offlineRequests.contentRange).toMatch(/^bytes 0-1\/\d+$/);
   await page
     .getByRole("button", { name: "My scores", exact: true })
     .first()
@@ -266,6 +314,7 @@ try {
     JSON.stringify(
       {
         productionSubpath: base,
+        installManifestAndMobileIcons: true,
         crossOriginIsolated: false,
         notation: true,
         sampledPlayback: true,
@@ -281,6 +330,9 @@ try {
         offlineSourceDemosAndPDFs: 3,
         samePointSourcePianoAB: true,
         offlineSourceListening: true,
+        offlineAudioByteRange206: true,
+        readableMissingAsset503: true,
+        repairedInterruptedOptionalAsset: simulateMissingOptional,
         expressiveBachMidi: true,
         actualRecognition: process.env.MODSCORE_VERIFY_OMR === "1",
         errors,

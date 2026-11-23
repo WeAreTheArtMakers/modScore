@@ -1,3 +1,5 @@
+import { readScoreHistory, type ScoreHistory } from "./score-history";
+import { validAlignmentPoints, type AlignmentPoint, type SourceAlignment } from "./source-alignment";
 export interface Project {
   id: string;
   title: string;
@@ -8,7 +10,8 @@ export interface Project {
   updated: number;
   reviewed: boolean;
   recognizedPages?: string[];
-  sourceAlignment?: {offset:number; bpm?:number};
+  sourceAlignment?: SourceAlignment;
+  editHistory?: ScoreHistory;
   performance?: {
     notes: {
       pitch: number;
@@ -62,6 +65,39 @@ export const listScores = () =>
   transaction("readonly", (s) => s.getAll()) as Promise<Project[]>;
 export const saveScore = (p: Project) =>
   transaction("readwrite", (s) => s.put({ ...p, updated: Date.now() }));
+export type ScoreChanges = Partial<Pick<Project,
+  "xml" | "reviewed" | "editHistory" | "title" | "sourceAlignment" | "originals"
+>>;
+
+/** Commit only changed fields, with the notation and its history in one transaction. */
+export async function updateScore(
+  previous: Pick<Project, "id" | "xml" | "editHistory">,
+  changes: ScoreChanges,
+): Promise<Project> {
+  const db = await database();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("scores", "readwrite");
+    const store = tx.objectStore("scores");
+    const lookup = store.get(previous.id);
+    let saved: Project;
+    let error: Error | undefined;
+    lookup.onsuccess = () => {
+      const current = lookup.result as Project | undefined;
+      // Comparing the history also detects an edit/undo cycle in another tab.
+      if (!current || current.xml !== previous.xml ||
+          current.editHistory?.revision !== previous.editHistory?.revision) {
+        error = Error("The score changed elsewhere. Reopen it from your library before editing.");
+        tx.abort();
+        return;
+      }
+      saved = { ...current, ...changes, updated: Date.now() };
+      store.put(saved);
+    };
+    tx.oncomplete = () => resolve(saved);
+    tx.onabort = () => reject(error ?? tx.error ?? Error("Score edit could not be saved"));
+  });
+}
+
 export const deleteScore = (id: string) =>
   transaction("readwrite", (s) => s.delete(id));
 const encode = async (b: Blob) => ({
@@ -145,7 +181,12 @@ export function validateProject(value: unknown): Project {
     )
       throw Error("Invalid audio performance");
   }
-  if(v.sourceAlignment && (!Number.isFinite(v.sourceAlignment.offset)||Math.abs(v.sourceAlignment.offset)>3600||(v.sourceAlignment.bpm!==undefined&&(!Number.isFinite(v.sourceAlignment.bpm)||v.sourceAlignment.bpm<20||v.sourceAlignment.bpm>300)))) throw Error("Invalid source audio alignment");
+  const alignment = v.sourceAlignment;
+  if (alignment !== undefined && (!alignment || !Number.isFinite(alignment.offset) ||
+    Math.abs(alignment.offset) > 3600 || (alignment.bpm !== undefined &&
+      (!Number.isFinite(alignment.bpm) || alignment.bpm < 20 || alignment.bpm > 300)) ||
+    (alignment.points !== undefined && !validAlignmentPoints(alignment.points))))
+    throw Error("Invalid source audio alignment");
   const decode = (p: any) => {
     if (!p || typeof p.type !== "string" || typeof p.data !== "string")
       throw Error("Invalid project image");
@@ -162,6 +203,7 @@ export function validateProject(value: unknown): Project {
     created: Date.now(),
     updated: Date.now(),
     reviewed: !!v.reviewed,
+    editHistory: readScoreHistory(v.editHistory),
     recognizedPages: v.recognizedPages ? [...v.recognizedPages] : undefined,
     performance: v.performance
       ? {
@@ -178,7 +220,11 @@ export function validateProject(value: unknown): Project {
           meter: { ...v.performance.meter },
         }
       : undefined,
-    sourceAlignment: v.sourceAlignment ? {...v.sourceAlignment} : undefined,
+    sourceAlignment: alignment ? {
+      offset: alignment.offset,
+      bpm: alignment.bpm,
+      ...(alignment.points ? { points: (alignment.points as AlignmentPoint[]).map(({measure, seconds}) => ({measure, seconds})) } : {}),
+    } : undefined,
     reference:
       v.reference &&
       typeof v.reference.url === "string" &&

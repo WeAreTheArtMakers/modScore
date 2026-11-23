@@ -16,33 +16,33 @@
   },
   {
     "path": "/about/index.html",
-    "bytes": 13722,
-    "sha256": "2a69a5ea521b501dc3627f418551960aef75f814b53b3cfe16a5760d67028bad"
+    "bytes": 13734,
+    "sha256": "f50f236718c02123f5c0c06b689aa197705bfc3fbd26767190fde0ae645a1691"
   },
   {
-    "path": "/assets/audio-transcription-D6qaW2I8.js",
-    "bytes": 2395,
-    "sha256": "76f1334d2703d3561237ea9430239350fc1920e27f901981c948fcb787451f89"
+    "path": "/assets/audio-transcription-BUMd7oC-.js",
+    "bytes": 2474,
+    "sha256": "ed8cf9cc894c2a8fbf0a24e70d5d2d3f7460a6ceebdd6ae6a1a5d128fa6cec64"
   },
   {
-    "path": "/assets/audio-worker-DYDxraD9.js",
-    "bytes": 5484,
-    "sha256": "c30ae5cc80580abf86ce48d218ea332417733e63419ec49a8b6946cd30a62e32"
+    "path": "/assets/audio-worker-BUDxOlrm.js",
+    "bytes": 5498,
+    "sha256": "fbc124ec7b5935fc3955db6c5d6f3dc5a207eb025b8b43bff91a3ce4c295544e"
   },
   {
-    "path": "/assets/index--Q-ITDEx.css",
-    "bytes": 30386,
-    "sha256": "cc0cef2d228220697eb5940cd64ef40414bd8eb23e59729275ac0120fc42af2c"
+    "path": "/assets/index-KOzhAuUX.js",
+    "bytes": 227997,
+    "sha256": "fa319b754f716e6b55504ed3f4b2b2685e0a63dec49f4183f1f758b63e67dd23"
   },
   {
-    "path": "/assets/index-CI_yQPN7.js",
-    "bytes": 194809,
-    "sha256": "5b3423d5c5ec1d94d531df42fbc17fc07c9ecf3e862659584e1bf22f846848ce"
+    "path": "/assets/index-VYasQnV6.css",
+    "bytes": 32113,
+    "sha256": "5d04b808e76d2952c13b716fcf22c56c018540c572b4f5740d92b0ecf905427a"
   },
   {
-    "path": "/assets/piano-score-BlRkoSEL.js",
+    "path": "/assets/piano-score-MZ10RqgS.js",
     "bytes": 7078,
-    "sha256": "41633a13b1077eab8822f135ae7846a0d15982a77840a5f1d67af11fa12ada00"
+    "sha256": "b260571bf5bf353d2f24670714a136d0f5dc8f64776fa0b3a9d02c16d18cdd37"
   },
   {
     "path": "/audio-pitch/nmp.onnx",
@@ -170,6 +170,11 @@
     "sha256": "61fefb18c1f429c55c58df01d9317dffc1fecaaa0064467fd17791e1bdda4d2c"
   },
   {
+    "path": "/icon-180.png",
+    "bytes": 3639,
+    "sha256": "0eb6f7e39792d71899c893c885f41111b4e50c503d4ee2fa2236628079119814"
+  },
+  {
     "path": "/icon-192.png",
     "bytes": 3695,
     "sha256": "dd5ad2d0505fd44f5ae0f735dce0c9b11b03191b47f78e2114f98074de382e5f"
@@ -180,14 +185,19 @@
     "sha256": "51d473e0b46b272f1506d407588d7259be435ce634e5dfed5967ef061678a131"
   },
   {
+    "path": "/icon-maskable-512.png",
+    "bytes": 5776,
+    "sha256": "c96225f2f2c6c13e09e535c3ef49b795d329b74907a0e2c4287385e95aa39412"
+  },
+  {
     "path": "/icon.svg",
     "bytes": 420,
     "sha256": "9dad227b3220a8d8a93b20e5b0baddbe1da921e38d80c66b102fc0ded4d0a1ef"
   },
   {
     "path": "/index.html",
-    "bytes": 1133,
-    "sha256": "2d0d4772fda9abec8a69a15145f524cd2b38da66f65c707513e45a402f40e0ea"
+    "bytes": 1149,
+    "sha256": "215eb8d98ae70a4e8f27a8eddd62f5e1fe724b13e55513aaa5cad6b8803b9fa6"
   },
   {
     "path": "/instruments/acoustic_grand_piano.json",
@@ -1336,8 +1346,8 @@
   },
   {
     "path": "/manifest.webmanifest",
-    "bytes": 584,
-    "sha256": "4c4ce0705ed1ac25a4ab6bea2b994c51a2d92d079c09d94fb86bd6762a4770be"
+    "bytes": 709,
+    "sha256": "537f46caaa14983636ec859a50d625680f6d54ec97bdae5f8e9856b7aa369437"
   },
   {
     "path": "/recognition/lib/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.mjs",
@@ -1421,8 +1431,8 @@
   },
   {
     "path": "/sw.js",
-    "bytes": 3221,
-    "sha256": "4fc8d64583a9a069ed2aac05d345133ce574376d0558481bc259a0ef40cd6a31"
+    "bytes": 4901,
+    "sha256": "54012cdbee903f8bd86293a08c3228e81510503ec94df9680141d80f440107ce"
   },
   {
     "path": "/validate.html",

@@ -1,31 +1,40 @@
 import { beatToSeconds, secondsToBeat, type Timeline } from "./music";
 import type { AudioEngine } from "./audio";
 import type { Project } from "./storage";
-export function sourceSeconds(p: Project, t: Timeline, beat: number) {
+import { mapTime } from "./source-alignment";
+
+function calculateAlignment(p: Project, t: Timeline) {
   const a = p.sourceAlignment;
-  const tempos = a?.bpm
-    ? [{ beat: 0, bpm: a.bpm }]
-    : p.performance
-    ? [{ beat: 0, bpm: p.performance.bpm }]
-    : t.tempos;
-  return (
-    (a?.offset ?? p.performance?.sourceStart ?? 0) + beatToSeconds(beat, tempos)
-  );
+  const bpm = a?.bpm ?? p.performance?.bpm;
+  const tempos = bpm ? [{ beat: 0, bpm }] : t.tempos;
+  const points = (a?.points ?? []).flatMap(({measure, seconds}) =>
+    t.measures[measure] ? [[beatToSeconds(t.measures[measure].beat, tempos), seconds] as [number, number]] : []);
+  const inverse = points.map(([score, recording]): [number, number] => [recording, score]);
+  return { tempos, points, inverse, offset: a?.offset ?? p.performance?.sourceStart ?? 0 };
 }
+
+const mappings = new WeakMap<Project, {
+  score: Timeline;
+  settings: Project["sourceAlignment"];
+  result: ReturnType<typeof calculateAlignment>;
+}>();
+function alignment(p: Project, t: Timeline) {
+  const cached = mappings.get(p);
+  if (cached?.score === t && cached.settings === p.sourceAlignment) return cached.result;
+  const result = calculateAlignment(p, t);
+  mappings.set(p, { score: t, settings: p.sourceAlignment, result });
+  return result;
+}
+
+export function sourceSeconds(p: Project, t: Timeline, beat: number) {
+  const { tempos, points, offset } = alignment(p, t);
+  return mapTime(beatToSeconds(beat, tempos), points, offset);
+}
+
 export function sourceBeat(p: Project, t: Timeline, seconds: number) {
-  const a = p.sourceAlignment;
-  const tempos = a?.bpm
-    ? [{ beat: 0, bpm: a.bpm }]
-    : p.performance
-    ? [{ beat: 0, bpm: p.performance.bpm }]
-    : t.tempos;
-  return Math.min(
-    t.duration,
-    secondsToBeat(
-      Math.max(0, seconds - (a?.offset ?? p.performance?.sourceStart ?? 0)),
-      tempos,
-    ),
-  );
+  const { tempos, inverse, offset } = alignment(p, t);
+  const nominal = mapTime(seconds, inverse, -offset);
+  return Math.min(t.duration, secondsToBeat(Math.max(0, nominal), tempos));
 }
 /** A/B replays from a stable, user-selected written beat. Native source seeking
  * can set a new anchor. Switching stops the other player before starting. */
@@ -50,16 +59,11 @@ export class SourceComparison {
     this.timeline = t;
     if (element) {
       element.volume = this.piano.volume;
-      element.onloadedmetadata = () => {
-        element.currentTime = Math.max(
-          0,
-          Math.min(element.duration || 0, sourceSeconds(p, t, this.anchor)),
-        );
-      };
       element.onseeking = () => {
         this.fromSource = true;
       };
       element.onplay = () => {
+        if (element.paused) return;
         this.fromSource = true;
         this.piano.pause();
         element.playbackRate = this.piano.speed;
@@ -70,18 +74,18 @@ export class SourceComparison {
     this.pending?.();
     this.pending = undefined;
     this.generation++;
+    this.fromSource = false;
     if (this.element) {
       this.element.pause();
       this.element.onplay = null;
       this.element.onseeking = null;
-      this.element.onloadedmetadata = null;
     }
     this.element = undefined;
   }
-  pause() {
+  pause(keepSourcePosition = false) {
     this.pending?.();
     this.pending = undefined;
-    this.fromSource = false;
+    if (!keepSourcePosition) this.fromSource = false;
     this.generation++;
     this.element?.pause();
   }
@@ -109,7 +113,7 @@ export class SourceComparison {
       t = this.timeline;
     if (!e || !p || !t) throw Error("Attach a source recording first.");
     this.pending?.();
-    this.pending=undefined;
+    this.pending = undefined;
     const request = ++this.generation;
     this.piano.pause();
     e.pause();
@@ -149,8 +153,13 @@ export class SourceComparison {
       );
     e.currentTime = seconds;
     e.playbackRate = this.piano.speed;
-    await e.play();
-    if (request !== this.generation) e.pause();
+    this.fromSource = true;
+    try {
+      await e.play();
+    } catch (error) {
+      // A newer action may pause playback while this play request is pending.
+      if (request === this.generation) throw error;
+    }
   }
   async listenPiano() {
     this.pause();

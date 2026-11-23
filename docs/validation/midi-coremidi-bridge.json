@@ -1,0 +1,6 @@
+{
+  "path": "CoreMIDI virtual endpoint → Chrome Web MIDI → modScore",
+  "noteOn": true,
+  "sustainAfterRelease": true,
+  "pedalUpReleases": true
+}

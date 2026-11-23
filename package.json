@@ -1,6 +1,6 @@
 {
   "name": "modscore",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
@@ -10,6 +10,7 @@
     "build": "tsc --noEmit && node scripts/prepare-assets.mjs && vite build && node scripts/package-source.mjs && node scripts/verify-dist.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "playwright test --project=chrome --project=mobile-chrome",
+    "test:recognition:fixtures": "node scripts/benchmark-recognition.mjs",
     "test:recognition": "node scripts/validate-recognition.mjs",
     "test:webkit": "playwright test --project=webkit",
     "assets:pdf": "node scripts/fetch-pdf.mjs",

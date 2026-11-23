@@ -310,49 +310,43 @@ export class AudioEngine {
     this.track(o, g);
   }
   async wav() {
-    if (!this.timeline) throw Error("No score");
-    const seconds =
-      beatToSeconds(this.timeline.duration, this.performance!.tempos, this.speed) +
-      2;
+    const score = this.performance;
+    if (!score?.notes.length) throw Error("Open a score containing playable notes first.");
+    const { speed, transpose, volume } = this;
+    const drums = new Set(score.tracks.filter((t) => t.drums).map((t) => t.id));
+    const notes = score.notes.filter((n) => {
+      const pitch = n.pitch + transpose;
+      return pitch >= 0 && pitch <= 127 && this.audible(n);
+    });
+    const seconds = beatToSeconds(score.duration, score.tempos, speed) + 2;
     const rate = 22050;
-    const bytes = seconds * rate * 4;
-    const estimate = await navigator.storage?.estimate?.();
-    void estimate;
-    if (bytes > 128 * 1024 * 1024)
+    const frames = Math.ceil(seconds * rate);
+    if (!Number.isFinite(frames) || frames <= 0 || frames * 4 > 128 * 1024 * 1024)
       throw Error(
         "This score needs more than the mobile WAV memory budget. Export MIDI or MusicXML instead.",
       );
-    const c = new OfflineAudioContext(1, Math.ceil(seconds * rate), rate);
+
+    // Keep this export on the score, settings and samples selected at invocation.
+    const bank = new Instruments();
+    bank.bank = this.instruments.bank;
+    bank.buffers = new Map(this.instruments.buffers);
+    if (!Object.keys(bank.bank).length && notes.some((n) => !drums.has(n.track)))
+      await bank.load(0);
+    const c = new OfflineAudioContext(1, frames, rate);
     const g = c.createGain();
-    g.gain.value = this.volume;
+    g.gain.value = volume;
     g.connect(c.destination);
-    await this.instruments.prepare(
-      c,
-      this.performance!.notes.map((n) => n.pitch + this.transpose),
-    );
-    for (const n of this.performance!.notes) {
-      const p = n.pitch + this.transpose;
-      if (p < 0 || p > 127 || !this.audible(n)) continue;
-      const start = beatToSeconds(n.beat, this.performance!.tempos, this.speed);
-      const dur =
-        beatToSeconds(
-          n.beat + (n.soundDuration ?? n.duration),
-          this.performance!.tempos,
-          this.speed,
-        ) - start;
+    await bank.prepare(c, notes.filter((n) => !drums.has(n.track)).map((n) => n.pitch + transpose));
+
+    for (const n of notes) {
+      const start = beatToSeconds(n.beat, score.tempos, speed);
+      const end = beatToSeconds(n.beat + (n.soundDuration ?? n.duration), score.tempos, speed);
       scheduleVoice(
-        c,
-        g,
-        this.instruments,
-        p,
-        start,
-        dur,
-        n.velocity,
-        this.timeline.tracks.find((t) => t.id === n.track)?.drums,
+        c, g, bank, n.pitch + transpose, start, end - start,
+        n.velocity, drums.has(n.track),
       );
     }
-    const buffer = await c.startRendering();
-    return encodeWav(buffer);
+    return encodeWav(await c.startRendering());
   }
 }
 function scheduleVoice(

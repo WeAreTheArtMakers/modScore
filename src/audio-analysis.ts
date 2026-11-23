@@ -32,10 +32,9 @@ export function cleanDetections(
       .map((n) => ({ ...n }))
       .sort((a, b) => a.startTimeSeconds - b.startTimeSeconds);
   const result: DetectedNote[] = [];
+  const previousByPitch = new Map<number, DetectedNote>();
   for (const n of sorted) {
-    const before = [...result]
-      .reverse()
-      .find((p) => p.pitchMidi === n.pitchMidi);
+    const before = previousByPitch.get(n.pitchMidi);
     if (
       before &&
       n.startTimeSeconds < before.startTimeSeconds + before.durationSeconds
@@ -53,6 +52,7 @@ export function cleanDetections(
       }
     }
     result.push(n);
+    previousByPitch.set(n.pitchMidi, n);
   }
   return result;
 }

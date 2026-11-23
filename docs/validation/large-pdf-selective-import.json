@@ -1,0 +1,14 @@
+{
+  "pagesInPdf": 40,
+  "selected": [
+    1,
+    2,
+    40
+  ],
+  "retainedPages": 3,
+  "pdfBytes": 171738,
+  "retainedImageBytes": 792840,
+  "elapsedMs": 924,
+  "rendererJsHeapBeforeBytes": 2523992,
+  "rendererJsHeapPeakBytes": 5961824
+}
