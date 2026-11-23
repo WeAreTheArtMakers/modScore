@@ -70,3 +70,7 @@ The optional local YouTube helper invokes user-installed yt-dlp or uvx; yt-dlp i
 ## Classical demonstration scores (0.6.1)
 
 The Bach BWV 772 complete score derives from jeff covey's Mutopia typesetting (© 2008, CC BY-SA 3.0). The Bach BWV 846 Prelude typesetting was placed in the public domain by its Mutopia contributors. Mozart K.545 measures 1–12 use the music21 corpus encoding, with the repository BSD-3-Clause notice reproduced at `docs/licenses/music21-BSD-3-Clause.txt` and alongside the source; its comparison PDF/LilyPond/MIDI are Alejandro Sierra's Mutopia edition (© 2013, CC BY-SA 3.0). These music assets retain their own terms, attribution and adaptation notes in `public/demos/LICENSE.md`. Original source files and their SHA256 lock are included; no new restriction is applied to the AGPL application software. The optional maintainer conversion uses python-ly 0.9.9 externally; it is not bundled into the browser.
+
+## Basic Music source recording (0.7)
+
+`public/demos/basic-music-source.mp3` is the composer-authorized Basic Music recording by Baran Gulesen, sourced from https://www.youtube.com/watch?v=AN0wGBUxkIk and encoded as mono 96 kbit/s MP3 for offline A/B playback. Musical/recording rights remain with the composer. Its inclusion is separate from the AGPL software license; see `public/demos/LICENSE.md`. No classical performance recording is bundled.

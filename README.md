@@ -11,7 +11,7 @@
 </p>
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-b6ef72?style=flat-square"></a>
-  <img alt="Version 0.6.1" src="https://img.shields.io/badge/version-0.6.1-80cae9?style=flat-square">
+  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-80cae9?style=flat-square">
   <img alt="Local processing" src="https://img.shields.io/badge/processing-on_device-b6ef72?style=flat-square">
 </p>
 
@@ -21,11 +21,19 @@ modScore turns printed sheet music into notation you can hear, see and practice.
 
 ![modScore playing the included original CC0 study](docs/preview.png)
 
+## 0.7: source/piano A/B and expressive playback
+
+Basic Music reference v4 changes **only measures 13 and 14**: a held F3 replaces the unsupported moving bass in 13, and explicit MusicXML performance release offsets preserve the recorded articulation/overlap in both hands without rewriting the written rhythm. The YouTube recording was downloaded again and its decoded PCM matched the prior analysis input exactly. All other 33 measures remain unchanged.
+
+**Source ↔ Piano** replays both from the same selected anchor. Use **Review measures 13–14**, then **A · Listen to source** / **B · Listen to piano**. Seek within a recording and choose **Compare from here**, or attach your own recording and set its first-beat offset/recording BPM. Alignment is saved in project backups; source and piano stop each other. Basic Music includes a composer-authorized MP3 source for offline comparison.
+
+**Ornaments & expression** offers Auto/Baroque/Classical/Literal playback and adjustable fermata stretch. Trills, lower/upper mordents, directed chord arpeggios and note/rest fermatas share a performance layer across sampled piano, active keys, MIDI and WAV. Engraving and editable principal notes stay intact. Interpretation is configurable, not a claim of a single historically definitive performance. [0.7 findings](docs/EXPRESSION_AB_070_2026-11-23.md).
+
 ## 0.6.1: corrected passages and source-based repertoire
 
 Basic Music reference v3 restores held-note ties in the recurring passage and corrects adjacent-pitch draft artifacts around measures 12–14 / 26–28. Original source events, rests and clef transitions are now written directly. Earlier saved copies offer **Open corrected score** without replacing edits.
 
-The demo chooser also offers **Bach BWV 772** (complete, 22 measures), **Bach BWV 846 Prelude** (complete, 35 measures), and **Mozart K.545 Allegro** (original opening measures 1–12). Source PDFs, attribution and source-file hashes are bundled. These are notation-source editions, not audio-model guesses. Bach ornaments/fermatas are displayed; automatic playback follows principal notes and numeric durations. See [demo sources and licenses](public/demos/LICENSE.md) and [validation](docs/REPERTOIRE_061_2026-11-23.md).
+The demo chooser also offers **Bach BWV 772** (complete, 22 measures), **Bach BWV 846 Prelude** (complete, 35 measures), and **Mozart K.545 Allegro** (original opening measures 1–12). Source PDFs, attribution and source-file hashes are bundled. These are notation-source editions, not audio-model guesses. Version 0.7 adds configurable playback of Bach ornaments and note/rest fermatas; Literal mode retains principal notes. See [demo sources and licenses](public/demos/LICENSE.md) and [validation](docs/REPERTOIRE_061_2026-11-23.md).
 
 ## Use it in your browser
 

@@ -4,19 +4,19 @@
 
 Composition © Baran Gulesen. Included as modScore's first demo with the composer's explicit permission. Musical rights remain with the composer; the application's software license does not grant a separate general license to the composition.
 
-The current reference edition follows the composer's seven supplied score screenshots: C minor (three flats), 35 written measures / 136 quarter beats, 110 BPM, played twice. Note data is retained in `basic-music.score.json`; `scripts/build-basic-demo.mjs` rebuilds the MusicXML and MIDI. The two short closing measures are retained. Original screenshots and audio are not distributed.
+The current reference edition follows the composer's seven supplied score screenshots: C minor (three flats), 35 written measures / 136 quarter beats, 110 BPM, played twice. Note data is retained in `basic-music.score.json`; `scripts/build-basic-demo.mjs` rebuilds the MusicXML and MIDI. The two short closing measures are retained. Original screenshots and private PCM analysis files are not distributed. `basic-music-source.mp3` is the composer-authorized recording from https://www.youtube.com/watch?v=AN0wGBUxkIk, encoded as mono MP3 (96 kbit/s) for local/offline comparison. Composition and recording rights remain with Baran Gulesen; neither is relicensed under AGPL.
 
-The 0.5 audio-only and 0.6 v2 editions are superseded by reference v3. Measures 13/27/28 remove adjacent-pitch draft artifacts, recurring held notes retain their ties, and source rhythm/rest/clef boundaries are written directly. Earlier saved demo edits are preserved. Existing `basic-music-32` downloads now contain corrected first-32-bar excerpts. The full reference edition is `basic-music.musicxml` / `basic-music.mid`. The composer's recording remains at https://www.youtube.com/watch?v=AN0wGBUxkIk .
+The 0.5 audio-only, 0.6 v2 and 0.6.1 v3 editions are superseded by reference v4. The earlier reference review corrected adjacent-pitch artifacts in measures 13/27/28 and retained recurring ties and source rhythm/rest/clef boundaries. Version 0.7 revises only measures 13–14 against the recording: held F3 in measure 13 and recording-based release offsets in both hands; all other 33 written measures are unchanged. Earlier saved demo edits are preserved. Existing `basic-music-32` downloads now contain corrected first-32-bar excerpts. The full reference edition is `basic-music.musicxml` / `basic-music.mid`. The composer's recording remains at https://www.youtube.com/watch?v=AN0wGBUxkIk .
 
 ## Ode to Joy — Ludwig van Beethoven
 
 The melody is in the public domain. Melody reference: Peter Chubb's public-domain Mutopia edition, https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528 . modScore transposes the 16-bar melody into C and presents it twice, with an original piano accompaniment and an octave variation in the second half, for a 32-bar practice arrangement. This arrangement is dedicated to the public domain under CC0 by WeAreTheArtMakers.
 
-No third-party recording or paid-site export is included.
+No third-party classical performance recording or paid-site export is included. The Basic Music recording is included with its composer’s permission.
 
 ## Invention No. 1 — J. S. Bach, BWV 772
 
-Complete 22-measure two-part score. Source: [Mutopia-2008/06/15-40](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=40), Bach-Gesellschaft, typeset by **jeff covey**, © 2008, **CC BY-SA 3.0 Unported** (https://creativecommons.org/licenses/by-sa/3.0/). The original LilyPond, PDF and MIDI are retained under `sources/bach-invention-01.*`. The MusicXML conversion and its metadata/clef/tempo adjustments are adaptations under the same CC BY-SA 3.0 license. Practice tempo 96 BPM is an app choice, not a newly attributed composer marking. The composition itself is public domain. Trill/mordent/arpeggio and fermata symbols are displayed; playback follows the principal notated notes and numeric durations.
+Complete 22-measure two-part score. Source: [Mutopia-2008/06/15-40](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=40), Bach-Gesellschaft, typeset by **jeff covey**, © 2008, **CC BY-SA 3.0 Unported** (https://creativecommons.org/licenses/by-sa/3.0/). The original LilyPond, PDF and MIDI are retained under `sources/bach-invention-01.*`. The MusicXML conversion and its metadata/clef/tempo adjustments are adaptations under the same CC BY-SA 3.0 license. Practice tempo 96 BPM is an app choice, not a newly attributed composer marking. The composition itself is public domain. Trill/mordent/arpeggio and fermata symbols are retained; 0.7 adds configurable expressive playback while preserving the written score.
 
 ## Prelude in C major — J. S. Bach, BWV 846
 

@@ -1,3 +1,4 @@
+import { performanceTimeline } from "./performance";
 import { TransportClock, metronomePulses, type Pulse } from "./transport-clock";
 import {
   beatToSeconds,
@@ -49,6 +50,7 @@ export class AudioEngine {
       );
   }
   timeline?: Timeline;
+  get performance() { return this.timeline ? performanceTimeline(this.timeline) : undefined; }
   voices = new Map<string, VoiceState>();
   loop?: [number, number];
   private timer?: number;
@@ -89,7 +91,7 @@ export class AudioEngine {
       await this.instruments.load(0);
     await this.instruments.prepare(
       this.context!,
-      this.timeline?.notes
+      this.performance?.notes
         .map((n) => n.pitch + this.transpose)
         .filter((p) => p >= 0 && p <= 127) || [],
     );
@@ -109,7 +111,7 @@ export class AudioEngine {
   async play() {
     this.pause();
     const request = ++this.playRequest;
-    if (!this.timeline?.notes.length)
+    if (!this.performance?.notes.length)
       throw Error("Open a score containing playable notes first.");
     await this.activate();
     this.preparing ??= this.prepare().finally(() => {
@@ -117,20 +119,20 @@ export class AudioEngine {
     });
     await this.preparing;
     if (request !== this.playRequest) return;
-    if (this.position >= this.timeline.duration) this.position = 0;
+    if (this.position >= this.performance!.duration) this.position = 0;
     if (
       this.loop &&
       (this.position < this.loop[0] || this.position >= this.loop[1])
     )
       this.position = this.loop[0];
     this.clock = new TransportClock(
-      this.timeline,
+      this.performance!,
       this.position,
       this.speed,
       this.context!.currentTime + 0.04,
       this.loop,
     );
-    this.pulses = metronomePulses(this.timeline);
+    this.pulses = metronomePulses(this.performance!);
     this.loopTurns = 0;
     this.scheduled.clear();
     this.playing = true;
@@ -211,7 +213,7 @@ export class AudioEngine {
     for (const cycle of clock.cycles(now, horizon)) {
       const from = clock.from(cycle),
         end = clock.end;
-      for (const n of this.timeline.notes) {
+      for (const n of this.performance!.notes) {
         if (n.beat >= end) break;
         const key = `note:${cycle}:${n.id}`,
           pitch = n.pitch + this.transpose;
@@ -310,7 +312,7 @@ export class AudioEngine {
   async wav() {
     if (!this.timeline) throw Error("No score");
     const seconds =
-      beatToSeconds(this.timeline.duration, this.timeline.tempos, this.speed) +
+      beatToSeconds(this.timeline.duration, this.performance!.tempos, this.speed) +
       2;
     const rate = 22050;
     const bytes = seconds * rate * 4;
@@ -326,16 +328,16 @@ export class AudioEngine {
     g.connect(c.destination);
     await this.instruments.prepare(
       c,
-      this.timeline.notes.map((n) => n.pitch + this.transpose),
+      this.performance!.notes.map((n) => n.pitch + this.transpose),
     );
-    for (const n of this.timeline.notes) {
+    for (const n of this.performance!.notes) {
       const p = n.pitch + this.transpose;
       if (p < 0 || p > 127 || !this.audible(n)) continue;
-      const start = beatToSeconds(n.beat, this.timeline.tempos, this.speed);
+      const start = beatToSeconds(n.beat, this.performance!.tempos, this.speed);
       const dur =
         beatToSeconds(
           n.beat + (n.soundDuration ?? n.duration),
-          this.timeline.tempos,
+          this.performance!.tempos,
           this.speed,
         ) - start;
       scheduleVoice(

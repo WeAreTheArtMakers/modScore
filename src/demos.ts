@@ -1,19 +1,21 @@
 import { assetPath } from "./paths";
 import { listScores, saveScore, type Project } from "./storage";
 export const DEMO_SEEN = "modscore-welcome-v1";
-export const demos = [
+interface Demo {key:string;id:string;title:string;composer:string;subtitle:string;bars:number;description:string;descriptionTr:string;path:string;reviewed:boolean;source:string;pdf?:string;audio?:string;}
+export const demos:Demo[] = [
   {
     key: "basic",
-    id: "modscore-demo-basic-v3",
+    id: "modscore-demo-basic-v4",
     title: "Basic Music",
     composer: "Baran Gulesen",
     subtitle: "35 bars · C minor · 3 flats · 110 BPM · repeat",
     bars: 35,
     description:
-      "From the composer’s score and recording · C minor, three flats · revised ties and melodic lines.",
+      "From the composer’s score and recording · C minor, three flats · recording-checked measures 13–14 and source/piano comparison.",
     descriptionTr:
-      "Bestecinin nota ve kaydından · Do minör, üç bemol · düzeltilmiş bağlar ve melodik çizgiler.",
+      "Bestecinin nota ve kaydından · Do minör, üç bemol · kayıtla kontrol edilmiş 13–14. ölçüler ve kaynak/piyano karşılaştırması.",
     path: "demos/basic-music.musicxml",
+    audio: "demos/basic-music-source.mp3",
     reviewed: false,
     source: "https://www.youtube.com/watch?v=AN0wGBUxkIk",
     pdf: undefined,
@@ -40,9 +42,9 @@ export const demos = [
     subtitle: "Complete · 22 bars · two-part counterpoint · 96 BPM",
     bars: 22,
     description:
-      "Complete two-part invention · Mutopia / Bach-Gesellschaft source · practice tempo 96 BPM. Ornament symbols are shown; playback follows principal notes.",
+      "Complete two-part invention · Mutopia / Bach-Gesellschaft source · practice tempo 96 BPM. Configurable ornament and fermata playback.",
     descriptionTr:
-      "İki sesli invention’ın tamamı · Mutopia / Bach-Gesellschaft kaynağı · çalışma temposu 96 BPM. Süslemeler gösterilir; çalma ana notaları izler.",
+      "İki sesli invention’ın tamamı · Mutopia / Bach-Gesellschaft kaynağı · çalışma temposu 96 BPM. Süsleme ve fermatalar ayarlanabilir yorumla çalınır.",
     path: "demos/bach-invention-01.musicxml",
     reviewed: true,
     source: "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=40",
@@ -89,12 +91,16 @@ export async function demoProject(key: string): Promise<Project> {
   if (existing) return existing;
   const response = await fetch(assetPath(demo.path));
   if (!response.ok) throw Error("Demo score could not be loaded.");
+  const audioOriginals:Blob[]=[];
+  if(demo.audio)try {const r=await fetch(assetPath(demo.audio));if(r.ok){const b=await r.blob();if(b.type.startsWith("audio/"))audioOriginals.push(b);}}catch{/* A recording download must not prevent opening the notation. */}
   const project: Project = {
     id: demo.id,
     title: demo.title,
     xml: await response.text(),
     pages: [],
-    originals: [],
+    originals: audioOriginals,
+    sourceAlignment: demo.audio ? {offset:9.525317,bpm:110} : undefined,
+    reference: demo.audio ? {url:demo.source,title:demo.title+" — "+demo.composer} : undefined,
     created: Date.now(),
     updated: Date.now(),
     reviewed: demo.reviewed,

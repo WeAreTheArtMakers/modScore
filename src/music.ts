@@ -1,3 +1,4 @@
+import { readExpression, fermataFactor, performanceTimeline, type NoteExpression, type ExpressionOptions, type Fermata } from "./performance";
 import { expandRepeats } from "./repeats";
 export interface Note {
   id: string;
@@ -12,6 +13,7 @@ export interface Note {
   source: number[];
   soundDuration?: number;
   articulations?: string[];
+  expression?: NoteExpression;
 }
 export interface Measure {
   index: number;
@@ -45,6 +47,10 @@ export interface Timeline {
   key?: { fifths: number; mode: "major" | "minor" };
   writtenMeasures?: number;
   writtenDuration?: number;
+  composer?: string;
+  fermatas?: Fermata[];
+  expression?: ExpressionOptions;
+  realized?: boolean;
 }
 const steps: Record<string, number> = {
   C: 0,
@@ -127,6 +133,7 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
   const tempos: Tempo[] = [];
   const notes: Note[] = [];
   const tempoOffsets: number[] = [];
+  const fermatas: (Fermata & {measure:number})[] = [];
   let sourceIndex = 0;
   const pending = new Map<string, Note>();
   for (const part of children(doc.documentElement, "part")) {
@@ -135,10 +142,13 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
       beatType = 4,
       transpose = 0,
       dynamic = 0.75;
+    const staffKeys = new Map<number,number>();
+    const accidentals = new Map<string,number>();
     const staged: { note: Note; localBeat: number }[] = [];
     const measures = children(part, "measure");
     for (let mi = 0; mi < measures.length; mi++) {
       const m = measures[mi];
+      accidentals.clear();
       let at = 0,
         max = 0,
         previous = 0;
@@ -155,6 +165,7 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
               .reduce((s, v) => s + Number(v), 0);
             beatType = num(el, "time > beat-type", 4);
           }
+          for (const k of Array.from(el.querySelectorAll("key"))) staffKeys.set(Number(k.getAttribute("number")||0), num(k,"fifths"));
           if (el.querySelector("transpose"))
             transpose =
               num(el, "transpose > chromatic") +
@@ -236,6 +247,8 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
             at += dur;
           }
           max = Math.max(max, start + dur, at);
+          const hold = fermataFactor(el);
+          if (hold) fermatas.push({measure:mi,beat:start,duration:dur,factor:hold});
           if (child(el, "rest")) continue;
           if (child(el, "unpitched")) {
             warnings.add(
@@ -274,6 +287,12 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
               : articulations.includes("tenuto")
                 ? 1
                 : 1;
+          const staff = num(el,"staff",1), step = txt(el,"pitch > step"), octave = num(el,"pitch > octave");
+          const staffAccidentals = new Map([...accidentals].filter(([k])=>k.startsWith(staff+":")).map(([k,v])=>[k.slice(k.indexOf(":")+1),v]));
+          const expr = readExpression(el,step,octave,transpose,staffKeys.get(staff)??staffKeys.get(0)??0,staffAccidentals);
+          accidentals.set(`${staff}:${step}${octave}`,num(el,"pitch > alter"));
+          const release = Number(el.getAttribute("release")||0)/divisions;
+          const sounding = Math.max(.001, dur*gate+(Number.isFinite(release)?Math.max(-dur+.001,Math.min(16,release)):0));
           const note: Note = {
             id: `n${si}`,
             pitch,
@@ -296,7 +315,8 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
               ),
             ),
             source: [si],
-            soundDuration: gate === 1 ? undefined : dur * gate,
+            soundDuration: gate === 1 && !release ? undefined : sounding,
+            expression: expr,
             articulations: articulations.length ? articulations : undefined,
           };
           miNotes.push({ note, localBeat: start });
@@ -395,6 +415,8 @@ export function parseMusicXML(xml: string, title = "Untitled score"): Timeline {
     );
   return expandRepeats(
     {
+      composer: txt(doc.documentElement, 'creator[type="composer"]'),
+      fermatas: fermatas.map(h=>({beat:h.beat+measures[h.measure].beat,duration:h.duration,factor:h.factor})),
       key: doc.querySelector("key > fifths")
         ? {
             fifths: Number(doc.querySelector("key > fifths")!.textContent),
@@ -441,7 +463,7 @@ export function secondsToBeat(seconds: number, tempos: Tempo[], speed = 1) {
   return 0;
 }
 export function activeNotes(t: Timeline, beat: number) {
-  return t.notes.filter(
+  return performanceTimeline(t).notes.filter(
     (n) => n.beat <= beat && n.beat + (n.soundDuration ?? n.duration) > beat,
   );
 }

@@ -1,0 +1,317 @@
+{
+  "video": "https://www.youtube.com/watch?v=AN0wGBUxkIk",
+  "checked": "2026-11-23",
+  "freshDownloadMatchesPriorDecodedPCM": true,
+  "decodedInt16SamplesCompared": 15127894,
+  "sourceOffsetSeconds": 9.525317,
+  "bpm": 110,
+  "source13StartSeconds": 35.70713518181818,
+  "source14StartSeconds": 37.88895336363636,
+  "source15StartSeconds": 40.07077154545455,
+  "unchangedMeasuresSHA256": "61211cf2a1da2cf2fb40e6c5bc074d855bae7a58a8fdc3b0d6b667d9469bb4ce",
+  "notes": "Only measures 13 and 14 differ from reference-v3 note data. Written rhythms stay intact; release offsets describe performance durations, rounded to 1/16 of a quarter beat. The unsupported Ab3-G3-Ab3 bass movement in 13 is replaced with held F3. Other measures, including 27/28, remain unchanged.",
+  "measures": [
+    {
+      "number": 13,
+      "upper": [
+        {
+          "pitches": [
+            "C4"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": -0.5
+        },
+        {
+          "pitches": [
+            "F4"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1
+        },
+        {
+          "pitches": [
+            "G4"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1.75
+        },
+        {
+          "pitches": [
+            "F4"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": -0.5
+        },
+        {
+          "pitches": [
+            "D4"
+          ],
+          "units": 2.0,
+          "tie": []
+        },
+        {
+          "pitches": [
+            "G4"
+          ],
+          "units": 1.0,
+          "tie": [
+            "start"
+          ]
+        },
+        {
+          "pitches": [
+            "G4"
+          ],
+          "units": 1.0,
+          "tie": [
+            "stop"
+          ],
+          "releaseUnits": 0.75
+        },
+        {
+          "pitches": [
+            "C5"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1
+        },
+        {
+          "pitches": [
+            "D5"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 0.25
+        },
+        {
+          "pitches": [
+            "C5"
+          ],
+          "units": 1.0,
+          "tie": [
+            "start"
+          ]
+        },
+        {
+          "pitches": [
+            "C5"
+          ],
+          "units": 1.0,
+          "tie": [
+            "stop"
+          ]
+        },
+        {
+          "pitches": [
+            "B4"
+          ],
+          "units": 1.0,
+          "tie": [
+            "start"
+          ]
+        },
+        {
+          "pitches": [
+            "B4"
+          ],
+          "units": 1.0,
+          "tie": [
+            "stop"
+          ]
+        }
+      ],
+      "lower": [
+        {
+          "pitches": [
+            "C3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 1.5
+        },
+        {
+          "pitches": [
+            "F3"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1
+        },
+        {
+          "pitches": [
+            "G3"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1.75
+        },
+        {
+          "pitches": [
+            "F3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 2
+        },
+        {
+          "pitches": [
+            "D3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 1.5
+        },
+        {
+          "pitches": [
+            "F3"
+          ],
+          "units": 8,
+          "tie": []
+        }
+      ]
+    },
+    {
+      "number": 14,
+      "upper": [
+        {
+          "pitches": [
+            "R"
+          ],
+          "units": 2.0,
+          "tie": []
+        },
+        {
+          "pitches": [
+            "R"
+          ],
+          "units": 1.0,
+          "tie": []
+        },
+        {
+          "pitches": [
+            "C4"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1
+        },
+        {
+          "pitches": [
+            "D4"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": -0.25
+        },
+        {
+          "pitches": [
+            "C4"
+          ],
+          "units": 1.0,
+          "tie": []
+        },
+        {
+          "pitches": [
+            "D4"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": -0.25
+        },
+        {
+          "pitches": [
+            "Eb4"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1.25
+        },
+        {
+          "pitches": [
+            "R"
+          ],
+          "units": 8.0,
+          "tie": []
+        }
+      ],
+      "lower": [
+        {
+          "pitches": [
+            "C4"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 1
+        },
+        {
+          "pitches": [
+            "G3"
+          ],
+          "units": 2.0,
+          "tie": []
+        },
+        {
+          "pitches": [
+            "Ab3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 0.5
+        },
+        {
+          "pitches": [
+            "B3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 1.5
+        },
+        {
+          "pitches": [
+            "C3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 1.25
+        },
+        {
+          "pitches": [
+            "F3"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1
+        },
+        {
+          "pitches": [
+            "G3"
+          ],
+          "units": 1.0,
+          "tie": [],
+          "releaseUnits": 1.5
+        },
+        {
+          "pitches": [
+            "F3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 2.75
+        },
+        {
+          "pitches": [
+            "Eb3"
+          ],
+          "units": 2.0,
+          "tie": [],
+          "releaseUnits": 1.5
+        }
+      ]
+    }
+  ]
+}

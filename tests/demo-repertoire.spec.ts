@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import MidiPackage from "@tonejs/midi";
@@ -6,6 +7,27 @@ const { Midi } = MidiPackage;
 test("Basic Music recurring melody holds ties, preserves rests and agrees with downloadable MIDI", async ({
   page,
 }) => {
+  const data = JSON.parse(
+    await readFile("public/demos/basic-music.score.json", "utf8"),
+  );
+  const unchanged = data.measures.filter(
+    (m: { number: number }) => ![13, 14].includes(m.number),
+  );
+  const canonical = (v: any): any =>
+    Array.isArray(v)
+      ? v.map(canonical)
+      : v && typeof v === "object"
+      ? Object.fromEntries(
+          Object.keys(v)
+            .sort()
+            .map((k) => [k, canonical(v[k])]),
+        )
+      : v;
+  expect(
+    createHash("sha256")
+      .update(JSON.stringify(canonical(unchanged)))
+      .digest("hex"),
+  ).toBe("61211cf2a1da2cf2fb40e6c5bc074d855bae7a58a8fdc3b0d6b667d9469bb4ce");
   await page.goto("/");
   const r = await page.evaluate(async () => {
     const { parseMusicXML } = await import("/src/music.ts");
@@ -20,10 +42,14 @@ test("Basic Music recurring melody holds ties, preserves rests and agrees with d
       phrase: shape(48, 52),
       again: shape(106, 110),
       rest: shape(52, 56),
-      full: t.notes.map((n) => [n.pitch, n.beat, n.duration]),
+      full: t.notes.map((n) => [
+        n.pitch,
+        n.beat,
+        n.soundDuration ?? n.duration,
+      ]),
       clef13:
         d.querySelector(
-          'measure[number="13"] > attributes > clef[number="1"] > clef-octave-change'
+          'measure[number="13"] > attributes > clef[number="1"] > clef-octave-change',
         )?.textContent ?? "0",
       warnings: t.warnings,
     };
@@ -62,9 +88,9 @@ test("Basic Music recurring melody holds ties, preserves rests and agrees with d
           n.midi,
           n.ticks / midi.header.ppq,
           n.durationTicks / midi.header.ppq,
-        ])
+        ]),
       )
-      .sort()
+      .sort(),
   );
 });
 
@@ -92,7 +118,7 @@ for (const [key, file, source, bars, notes, beats] of [
           warnings: t.warnings,
         };
       },
-      { key, file }
+      { key, file },
     );
     expect(r.bars).toBe(bars);
     expect(r.beats).toBe(beats);
@@ -109,7 +135,7 @@ for (const [key, file, source, bars, notes, beats] of [
           n.midi,
           n.ticks / midi.header.ppq,
           n.durationTicks / midi.header.ppq,
-        ])
+        ]),
       )
       .sort();
     expect(r.notes.map(shape).sort()).toEqual(expected);
@@ -121,11 +147,11 @@ for (const [key, file, source, bars, notes, beats] of [
     await expect(page.locator("#notation svg").first()).toBeVisible();
     await expect(page.locator("[data-measure]")).toHaveCount(bars);
     await expect(
-      page.getByRole("link", { name: "Source score PDF", exact: true })
+      page.getByRole("link", { name: "Source score PDF", exact: true }),
     ).toHaveAttribute("href", `/demos/sources/${source}-a4.pdf`);
     const pdf = await page.request.get(`/demos/sources/${source}-a4.pdf`);
     expect(pdf.ok()).toBe(true);
-    expect((await pdf.body()).subarray(0,5).toString()).toBe("%PDF-");
+    expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
     await expect(page.locator("#demo-select option")).toHaveCount(5);
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect(page.locator(".key.active").first()).toBeVisible();
@@ -136,8 +162,8 @@ for (const [key, file, source, bars, notes, beats] of [
     expect(errors).toEqual([]);
     expect(
       await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth + 1
-      )
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
     ).toBe(true);
   });
 }

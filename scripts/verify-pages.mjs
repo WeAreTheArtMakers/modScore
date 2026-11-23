@@ -18,6 +18,7 @@ const mime = {
   ".wasm": "application/wasm",
   ".onnx": "application/octet-stream",
   ".musicxml": "application/xml",
+  ".mp3": "audio/mpeg",
 };
 const root = resolve("dist");
 const server = createServer(async (req, res) => {
@@ -86,11 +87,19 @@ try {
   const response = await fetch(origin + base + "demos/basic-music.mid");
   const midi = parseMidi(new Uint8Array(await response.arrayBuffer()));
   expect(midi.tracks.flat().filter((e) => e.type === "noteOn")).toHaveLength(
-    1236,
+    1228,
   );
   expect(
     midi.tracks.flat().find((e) => e.type === "keySignature"),
   ).toMatchObject({ key: -3, scale: 1 });
+  await page.getByRole("button", {name:"Review measures 13–14",exact:true}).click();
+  await expect(page.locator("#ab-position")).toContainText("Measure 13");
+  await page.getByRole("button", {name:"A · Listen to source",exact:true}).click();
+  expect(await page.locator("#original-audio").evaluate(e=>e.currentTime)).toBeGreaterThan(35.65);
+  await page.getByRole("button", {name:"B · Listen to piano",exact:true}).click();
+  await expect(page.locator(".key.active").first()).toBeVisible();
+  expect(await page.locator("#original-audio").evaluate(e=>e.paused)).toBe(true);
+  await page.getByRole("button", {name:"Pause comparison",exact:true}).click();
   await page.screenshot({
     path: "docs/validation/demo-desktop.png",
     fullPage: false,
@@ -239,6 +248,18 @@ try {
     await expect(page.locator(".key.active").first()).toBeVisible();
     await page.getByRole("button", { name:"Pause", exact:true }).click();
   }
+  await page.getByRole("button", {name:"My scores",exact:true}).first().click();
+  await page.locator(".score-open").filter({hasText:"Basic Music"}).first().click();
+  await page.getByRole("button", {name:"Review measures 13–14",exact:true}).click();
+  await page.getByRole("button", {name:"A · Listen to source",exact:true}).click();
+  expect(await page.locator("#original-audio").evaluate(e=>e.currentTime)).toBeGreaterThan(35.65);
+  await page.getByRole("button", {name:"Pause comparison",exact:true}).click();
+  await page.locator("#demo-select").selectOption("bach-invention");
+  await page.getByRole("button",{name:"Export",exact:true}).click();
+  const expressiveDownload=page.waitForEvent("download");
+  await page.getByRole("button",{name:"MIDI (.mid)",exact:true}).click();
+  const expressiveBytes=await readFile(await(await expressiveDownload).path());
+  expect(parseMidi(expressiveBytes).tracks.flat().filter(e=>e.type==="noteOn").length).toBeGreaterThan(458);
   expect(errors, "Browser errors").toEqual([]);
   expect(failures, "Missing production assets").toEqual([]);
   console.log(
@@ -258,6 +279,9 @@ try {
         offlineAudioTranscription: true,
         independentMetronomeVolume: true,
         offlineSourceDemosAndPDFs: 3,
+        samePointSourcePianoAB: true,
+        offlineSourceListening: true,
+        expressiveBachMidi: true,
         actualRecognition: process.env.MODSCORE_VERIFY_OMR === "1",
         errors,
         failures,

@@ -61,7 +61,7 @@ test("first launch opens Basic Music once, plays score and piano, and keeps the 
   expect(result[0]).toMatchObject({
     bars: 70,
     beats: 272,
-    notes: 1236,
+    notes: 1228,
     tempo: 110,
   });
   expect(result[1]).toMatchObject({
@@ -85,7 +85,7 @@ test("returning library is preserved and a deleted demo is not silently re-added
   await expect(page.locator("h1")).toHaveText("Basic Music");
   await page.evaluate(async () => {
     const { deleteScore } = await import("/src/storage.ts");
-    await deleteScore("modscore-demo-basic-v3");
+    await deleteScore("modscore-demo-basic-v4");
   });
   await page.reload();
   await expect(page.locator("#demo-banner")).toHaveCount(0);

@@ -6,7 +6,7 @@
     "fifths": -3,
     "mode": "minor"
   },
-  "source": "Composer-supplied seven score screenshots, checked with the recording. Revision 3 removes adjacent-pitch draft artifacts in measures 13/27/28; source event segmentation, rests and pitch-specific ties are retained.",
+  "source": "Composer notation and original AN0wGBUxkIk recording, aligned at 9.525317 seconds / 110 BPM. Revision 4 only changes measures 13 and 14: held F3 bass replaces unsupported movement, explicit MusicXML release offsets retain the recorded attacks/overlap without changing written note durations.",
   "rights": "Composition © Baran Gulesen. Included with the composer’s permission. Music rights reserved.",
   "measures": [
     {
@@ -1781,28 +1781,32 @@
             "C4"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": -0.5
         },
         {
           "pitches": [
             "F4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1
         },
         {
           "pitches": [
             "G4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.75
         },
         {
           "pitches": [
             "F4"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": -0.5
         },
         {
           "pitches": [
@@ -1827,21 +1831,24 @@
           "units": 1.0,
           "tie": [
             "stop"
-          ]
+          ],
+          "releaseUnits": 0.75
         },
         {
           "pitches": [
             "C5"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1
         },
         {
           "pitches": [
             "D5"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 0.25
         },
         {
           "pitches": [
@@ -1886,80 +1893,46 @@
             "C3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.5
         },
         {
           "pitches": [
             "F3"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1
         },
         {
           "pitches": [
             "G3"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.75
         },
         {
           "pitches": [
             "F3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 2
         },
         {
           "pitches": [
             "D3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.5
         },
         {
           "pitches": [
             "F3"
           ],
-          "units": 1.0,
-          "tie": [
-            "start"
-          ]
-        },
-        {
-          "pitches": [
-            "F3"
-          ],
-          "units": 1.0,
-          "tie": [
-            "stop"
-          ]
-        },
-        {
-          "pitches": [
-            "Ab3"
-          ],
-          "units": 1.0,
-          "tie": []
-        },
-        {
-          "pitches": [
-            "G3"
-          ],
-          "units": 1.0,
-          "tie": []
-        },
-        {
-          "pitches": [
-            "Ab3"
-          ],
-          "units": 2.0,
-          "tie": []
-        },
-        {
-          "pitches": [
-            "F3"
-          ],
-          "units": 2.0,
+          "units": 8,
           "tie": []
         }
       ]
@@ -1986,14 +1959,16 @@
             "C4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1
         },
         {
           "pitches": [
             "D4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": -0.25
         },
         {
           "pitches": [
@@ -2007,14 +1982,16 @@
             "D4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": -0.25
         },
         {
           "pitches": [
             "Eb4"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.25
         },
         {
           "pitches": [
@@ -2030,7 +2007,8 @@
             "C4"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1
         },
         {
           "pitches": [
@@ -2044,49 +2022,56 @@
             "Ab3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 0.5
         },
         {
           "pitches": [
             "B3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.5
         },
         {
           "pitches": [
             "C3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.25
         },
         {
           "pitches": [
             "F3"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1
         },
         {
           "pitches": [
             "G3"
           ],
           "units": 1.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.5
         },
         {
           "pitches": [
             "F3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 2.75
         },
         {
           "pitches": [
             "Eb3"
           ],
           "units": 2.0,
-          "tie": []
+          "tie": [],
+          "releaseUnits": 1.5
         }
       ]
     },
@@ -5302,5 +5287,5 @@
       "line": 4
     }
   ],
-  "revision": "reference-v3-2026-11-23"
+  "revision": "reference-v4-2026-11-23"
 }

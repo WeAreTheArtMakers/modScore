@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7 — recording-checked 13–14, A/B listening and expression
+
+- Basic Music reference v4 changes only 13/14: held F3 bass in 13 and standard MusicXML `release` offsets matching the recording's note overlap in both hands. Other 33 measures are checksum-checked unchanged. v1/v2/v3 edits are preserved.
+- Source ↔ Piano controls replay from the same written anchor, attach/align recordings, persist offset/BPM in backups and stop competing playback. The composer-authorized source MP3 is bundled; a shortcut opens 13–14.
+- Shared performance realization for trills/mordents, explicit ornament accidentals, marked arpeggio direction and note/rest fermatas. Styles Auto/Baroque/Classical/Literal and adjustable fermata stretch affect piano, active keys, MIDI and WAV, preserving editable notation.
+- Fermata tempo spans expand through repeats and the existing loop clock. Raw detection MIDI remains literal.
+
 ## 0.6.1 — held notes, reference engraving and classical repertoire
 
 - Correct Basic Music adjacent-pitch artifacts in 13/27/28; retain pitch-specific ties (including the recurring G4/B4 and lower F3), rests and rhythmic segmentation. Restate effective clefs after mid-measure changes.

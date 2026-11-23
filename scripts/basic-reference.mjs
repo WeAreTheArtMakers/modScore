@@ -52,7 +52,7 @@ export function basicReferenceXml(
     score.composer
   )}</creator><rights>${escape(
     score.rights
-  )}</rights><encoding><software>modScore reference edition 3</software></encoding></identification><part-list><score-part id="Piano"><part-name>Piano</part-name><score-instrument id="Piano-I"><instrument-name>Piano</instrument-name></score-instrument><midi-instrument id="Piano-I"><midi-channel>1</midi-channel><midi-program>1</midi-program></midi-instrument></score-part></part-list><part id="Piano">`;
+  )}</rights><encoding><software>modScore reference edition 4</software></encoding></identification><part-list><score-part id="Piano"><part-name>Piano</part-name><score-instrument id="Piano-I"><instrument-name>Piano</instrument-name></score-instrument><midi-instrument id="Piano-I"><midi-channel>1</midi-channel><midi-program>1</midi-program></midi-instrument></score-part></part-list><part id="Piano">`;
   let from = 0;
   for (let b = 0; b < limit; b++) {
     const bar = score.measures[b],
@@ -120,7 +120,7 @@ export function basicReferenceXml(
             item.tie?.includes("start") &&
             next?.pitches.includes(n.name) &&
             next.tie?.includes("stop");
-          xml += `<note${n ? ` dynamics="${staff === 1 ? 76 : 60}"` : ""}>${
+          xml += `<note${n ? ` dynamics="${staff === 1 ? 76 : 60}"${!start && item.releaseUnits ? ` release="${item.releaseUnits*4}"` : ""}` : ""}>${
             j ? "<chord/>" : ""
           }${
             n

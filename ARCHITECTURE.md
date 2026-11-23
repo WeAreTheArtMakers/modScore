@@ -111,3 +111,9 @@ The optional `scripts/youtube-helper.mjs` is a loopback HTTP adapter with explic
 The composer-reference Basic Music lives in `public/demos/basic-music.score.json` and rebuilds with `scripts/build-basic-demo.mjs`; it replaces the initial audio-only approximation. The old project ID is preserved and offers a new edition rather than silently overwriting user edits.
 
 Following is opt-in. `Sheet` updates the notation container's scroll position, never the window's, and cancels follow after manual input. Instant pane alignment avoids residual compositor scrolling; scroll anchoring is disabled. Piano browsing likewise releases automatic horizontal positioning.
+
+## Written notation, performance and source alignment (0.7)
+
+`parseMusicXML` retains editable principal notes, explicit release offsets, key/measure accidental context, ornament/arpeggio metadata and note/rest fermata spans. `performanceTimeline` caches a separate realized timeline: bounded diatonic/explicit ornament attacks, marked chord roll direction and fermata tempo spans. AudioEngine, active-key highlighting, MIDI and offline WAV share it. Written beats and source IDs remain stable; repeat expansion maps fermata spans as well as principal notes. Interpretation settings select style/fermata stretch; raw detection MIDI is explicitly literal.
+
+`SourceComparison` owns the single native source player and a stable written-beat anchor. It maps through stored offset/recording BPM independently of the edited piano tempo, stops the competing player, cancels pending metadata listeners on navigation/switching and releases object URLs during rendering. Its alignment survives project export/import. Constant offset/BPM is not a rubato score-following system. The Basic Music source MP3 is an explicitly authorized public demo asset; private screenshots, PCM, inference frames and downloads remain excluded.

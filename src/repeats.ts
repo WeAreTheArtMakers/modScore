@@ -70,7 +70,8 @@ export function expandRepeats(t: Timeline, xml: Document): Timeline {
   const seen = new Map<number, number>(),
     measures: Measure[] = [],
     notes: Timeline["notes"] = [],
-    tempos: Tempo[] = [];
+    tempos: Tempo[] = [],
+    fermatas: NonNullable<Timeline["fermatas"]> = [];
   for (let j = 0; j < order.length; j++) {
     const source = order[j],
       m = t.measures[source],
@@ -85,6 +86,7 @@ export function expandRepeats(t: Timeline, xml: Document): Timeline {
       sourceBeat: m.beat,
       pass,
     });
+    for(const h of t.fermatas||[]) if(h.beat>=m.beat&&h.beat<m.beat+m.duration) fermatas.push({...h,beat:beat+h.beat-m.beat});
     let contiguousEnd = m.beat + m.duration;
     for (let k = j + 1; k < order.length && order[k] === order[k - 1] + 1; k++)
       contiguousEnd = t.measures[order[k]].beat + t.measures[order[k]].duration;
@@ -116,6 +118,7 @@ export function expandRepeats(t: Timeline, xml: Document): Timeline {
     measures,
     tempos: tempos.filter((p, i) => !i || p.bpm !== tempos[i - 1].bpm),
     duration: beat,
+    fermatas,
     writtenDuration: t.duration,
     writtenMeasures: t.measures.length,
   };

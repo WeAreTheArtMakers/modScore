@@ -8,6 +8,7 @@ export interface Project {
   updated: number;
   reviewed: boolean;
   recognizedPages?: string[];
+  sourceAlignment?: {offset:number; bpm?:number};
   performance?: {
     notes: {
       pitch: number;
@@ -144,6 +145,7 @@ export function validateProject(value: unknown): Project {
     )
       throw Error("Invalid audio performance");
   }
+  if(v.sourceAlignment && (!Number.isFinite(v.sourceAlignment.offset)||Math.abs(v.sourceAlignment.offset)>3600||(v.sourceAlignment.bpm!==undefined&&(!Number.isFinite(v.sourceAlignment.bpm)||v.sourceAlignment.bpm<20||v.sourceAlignment.bpm>300)))) throw Error("Invalid source audio alignment");
   const decode = (p: any) => {
     if (!p || typeof p.type !== "string" || typeof p.data !== "string")
       throw Error("Invalid project image");
@@ -176,6 +178,7 @@ export function validateProject(value: unknown): Project {
           meter: { ...v.performance.meter },
         }
       : undefined,
+    sourceAlignment: v.sourceAlignment ? {...v.sourceAlignment} : undefined,
     reference:
       v.reference &&
       typeof v.reference.url === "string" &&

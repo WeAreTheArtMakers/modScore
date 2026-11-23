@@ -9,7 +9,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const directory = await mkdtemp(join(tmpdir(), "modscore-score-"));
 try {
-  for (const name of ["notation", "midi"]) {
+  for (const name of ["notation", "performance", "midi"]) {
     const source = await readFile(`src/${name}.ts`, "utf8");
     const js = ts
       .transpileModule(source, {
@@ -18,7 +18,7 @@ try {
           module: ts.ModuleKind.ES2022,
         },
       })
-      .outputText.replace('"./notation"', '"./notation.mjs"')
+      .outputText.replace('"./notation"', '"./notation.mjs"').replace('"./performance"', '"./performance.mjs"').replace("'./notation'", "'./notation.mjs'").replace("'./performance'", "'./performance.mjs'")
       .replace(
         '"@tonejs/midi"',
         JSON.stringify(pathToFileURL(require.resolve("@tonejs/midi")).href)
@@ -70,12 +70,13 @@ try {
               Math.abs(n.beat + n.duration - beat) < 1e-7
           );
           if (item.tie?.includes("stop") && previous)
-            previous.duration += duration;
+            {previous.soundDuration = item.releaseUnits ? previous.duration + duration + item.releaseUnits/4 : undefined;previous.duration += duration;}
           else
             events.push({
               pitch,
               beat,
               duration,
+              soundDuration: item.releaseUnits ? duration+item.releaseUnits/4 : undefined,
               staff,
               velocity: staff === 1 ? 0.76 : 0.6,
             });

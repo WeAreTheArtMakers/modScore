@@ -1,3 +1,4 @@
+import { performanceTimeline } from "./performance";
 import { parseMidi, writeMidi } from "midi-file";
 import { spellPitch } from "./notation";
 import { Midi } from "@tonejs/midi";
@@ -16,6 +17,7 @@ function readMidiText(value: string) {
   }
 }
 export function exportMidi(t: Timeline, transpose = 0, speed = 1) {
+  t = performanceTimeline(t);
   const midi = new Midi();
   midi.name = midiText(t.title);
   midi.header.tempos = t.tempos.map((p) => ({

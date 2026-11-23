@@ -38,7 +38,7 @@ test("Basic Music matches the supplied opening, three flats, 35 written bars and
   expect(r.written).toBe(35);
   expect(r.beats).toBe(272);
   expect(r.seconds).toBeCloseTo(148.363636, 5);
-  expect(r.notes).toBe(1236);
+  expect(r.notes).toBe(1228);
   expect(r.warnings).toEqual([]);
   expect(r.sourceAtRepeat).toBe(0);
   expect(r.first).toEqual([
@@ -62,7 +62,7 @@ test("Basic Music matches the supplied opening, three flats, 35 written bars and
     expect.objectContaining({ key: -3, scale: 1 }),
   ]);
   expect(midi.tracks.flat().filter((e) => e.type === "noteOn")).toHaveLength(
-    1236
+    1228
   );
 });
 test("notation retains chromatic pitches, chosen key/meter and independent unquantized performance", async ({
@@ -259,7 +259,7 @@ test("manual browsing releases follow permanently and following scrolls only the
   await page.locator("#piano").dispatchEvent("touchmove");
   await expect(page.locator("#auto-keys")).not.toBeChecked();
 });
-for (const edition of ["v1", "v2"]) test(`earlier ${edition} demo edits are preserved while opening the corrected edition`, async ({
+for (const edition of ["v1", "v2", "v3"]) test(`earlier ${edition} demo edits are preserved while opening the corrected edition`, async ({
   page,
 }) => {
   await page.goto("/");
@@ -299,7 +299,7 @@ for (const edition of ["v1", "v2"]) test(`earlier ${edition} demo edits are pres
     title: "Basic Music edited",
   });
   expect(saved).toContainEqual({
-    id: "modscore-demo-basic-v3",
+    id: "modscore-demo-basic-v4",
     title: "Basic Music",
   });
 });

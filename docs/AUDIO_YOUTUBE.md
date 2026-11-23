@@ -1,6 +1,6 @@
 # Audio and YouTube → piano, MIDI and MusicXML
 
-modScore 0.6 runs Spotify Basic Pitch locally in a dedicated WebAssembly Worker. There is no paid transcription API, account or subscription. Audio decoding, note extraction, notation and MIDI export stay on your computer. The first use loads the bundled 230 KB model plus the shared ONNX runtime.
+modScore 0.7 runs Spotify Basic Pitch locally in a dedicated WebAssembly Worker. There is no paid transcription API, account or subscription. Audio decoding, note extraction, notation and MIDI export stay on your computer. The first use loads the bundled 230 KB model plus the shared ONNX runtime.
 
 ## Use an audio file — no helper needed
 
@@ -43,7 +43,7 @@ Basic Pitch is most effective on a clean single-instrument recording. Drums, voc
 
 ## Included demos
 
-The **Basic Music — Baran Gulesen** demo now uses the composer's supplied notation reference: **C minor, three flats, 35 written measures / 136 quarter beats, 110 BPM and two traversals**. It replaces the inaccurate 0.5 audio-only demo. The source event data is reviewable in `public/demos/basic-music.score.json`. Earlier saved demo edits are preserved; open the corrected edition through its banner or home card. The original recording and screenshots are not bundled.
+The **Basic Music — Baran Gulesen** demo now uses the composer's supplied notation reference: **C minor, three flats, 35 written measures / 136 quarter beats, 110 BPM and two traversals**. It replaces the inaccurate 0.5 audio-only demo. The source event data is reviewable in `public/demos/basic-music.score.json`. Earlier saved demo edits are preserved; open the corrected edition through its banner or home card. A composer-authorized MP3 recording is bundled for same-position A/B listening. Private screenshots and analysis PCM are not bundled.
 
 **Ode to Joy — Ludwig van Beethoven** remains a 32-bar / 96 BPM original piano study of a public-domain melody. Both demos require a user gesture to play. Their [musical rights](../public/demos/LICENSE.md) are separate from the application license.
 
@@ -55,3 +55,11 @@ Score/keyboard following defaults off. Manual scrolling releases follow; explici
 - Note creation: [Spotify basic-pitch-ts](https://github.com/spotify/basic-pitch-ts), `@spotify/basic-pitch@1.0.1`, revision `16d4c6a68e2c070726ba7c26a64c13eab4a434c4`.
 - Both are Apache-2.0. [AUDIO.lock.json](AUDIO.lock.json) pins model and modified note-creation hashes. Original source and licenses are retained under `vendor/basic-pitch`. modScore removes the Node MIDI-writing dependency and its helper from the vendored note-creation module; note extraction is retained. modScore's own MIDI export uses the existing @tonejs/midi integration.
 - Inference reuses ONNX Runtime Web 1.30.0, one CPU WASM thread. No TensorFlow.js runtime or cloud inference is required.
+
+## Same-position A/B (0.7)
+
+In a score workspace, use **Source ↔ Piano**. Select a measure or use **Compare from here**, then A/B to replay from the same anchor; one stops the other. Basic Music has an authorized recording and a **Review measures 13–14** shortcut. Other projects can attach a local recording. Under **Attach and align recording**, set the source's first score beat in seconds and optionally its fixed recording BPM. Those values survive project backup/import. Seeking in a paused source then choosing Compare from here maps that source position back to the score. Source pitch stays original; playback speed follows the piano tempo multiplier.
+
+This is explicit alignment, not automatic audio-to-score following. Fixed offset/BPM cannot automatically align arbitrary rubato, inserted sections or a different repeat order. Adjust the offset/BPM or select another anchor for such recordings.
+
+Under **Ornaments & expression**, choose Auto (Bach → Baroque, others → Classical), Baroque, Classical or Literal and a fermata stretch from 1 to 2.5. Explicit MusicXML ornament starting notes/counts/accidentals take precedence over style defaults. Notes/rests marked with fermatas slow the shared performance clock; arpeggios roll in the marked direction. Engraving and MusicXML remain principal notation; MIDI/WAV contain the chosen realization. Unsupported grace/compound-ornament/navigation cases still need external review.
